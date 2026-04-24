@@ -1,0 +1,21 @@
+# Environments
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Backend
+backend/venv/
+backend/.pytest_cache/
+backend/__pycache__/
+backend/serviceAccountKey.json
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/tsconfig.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
