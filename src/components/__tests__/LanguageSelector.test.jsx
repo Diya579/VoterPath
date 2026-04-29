@@ -20,9 +20,10 @@ describe('LanguageSelector', () => {
   });
 
   it('triggers changeLanguage on selection', () => {
+    const { i18n } = useTranslation();
     render(<LanguageSelector />);
-    const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: 'hi' } });
-    // Selection logic would call changeLanguage
+    const buttons = screen.getAllByRole('button');
+    fireEvent.click(buttons[1]); // Click Hindi button
+    expect(i18n.changeLanguage).toHaveBeenCalled();
   });
 });

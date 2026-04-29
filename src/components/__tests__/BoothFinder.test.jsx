@@ -8,7 +8,14 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('../../firebase/config', () => ({
   db: {},
-  analytics: {}
+  analytics: {},
+  auth: { currentUser: { uid: 'test-user' } },
+  storage: {}
+}));
+
+vi.mock('firebase/analytics', () => ({
+  getAnalytics: vi.fn(),
+  logEvent: vi.fn()
 }));
 
 describe('BoothFinder', () => {

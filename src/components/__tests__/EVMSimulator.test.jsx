@@ -35,7 +35,7 @@ describe('EVMSimulator', () => {
 
     // Check Candidate A button exists
     const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBe(3);
+    expect(buttons.length).toBe(5);
 
     // Vote for candidate 1
     fireEvent.click(buttons[0]);
