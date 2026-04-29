@@ -1,11 +1,23 @@
 const Groq = require('groq-sdk');
+const { z } = require('zod');
+
+// Schema for request validation
+const chatSchema = z.object({
+  prompt: z.string().min(1).max(1000),
+  history: z.array(z.object({
+    role: z.enum(['user', 'model']),
+    parts: z.string()
+  })).optional()
+});
 
 const chatWithGemini = async (req, res, next) => {
   try {
-    const { prompt } = req.body;
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
+    // SECURITY: Validate input schema
+    const validation = chatSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ error: 'Invalid input format', details: validation.error });
     }
+    const { prompt, history = [] } = validation.data;
 
     try {
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -115,7 +127,7 @@ const constituencyBooths = {
 const scanVoterID = async (req, res, next) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No image uploaded' });
+      return res.status(400).json({ error: 'No image file provided' });
     }
 
     try {

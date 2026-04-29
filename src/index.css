@@ -14,8 +14,22 @@
   --shadow-brutal-sm: 3px 3px 0px 0px rgba(10,10,10,1);
   --shadow-brutal-hover: 2px 2px 0px 0px rgba(10,10,10,1);
   
-  --font-sans: 'Inter', sans-serif;
-  color-scheme: light;
+  --font-inter: 'Inter', system-ui, sans-serif;
+}
+
+/* Accessibility: High Contrast Mode Overrides */
+[data-contrast="high"] {
+  --primary: #FFFF00 !important;
+  --secondary: #0000FF !important;
+  --tertiary: #00FF00 !important;
+  --accent: #FF00FF !important;
+  --surface: #FFFFFF !important;
+  --background: #000000 !important;
+  --brutalBlack: #000000 !important;
+}
+
+body {
+ color-scheme: light;
 }
 
 @theme {

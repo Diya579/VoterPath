@@ -66,24 +66,29 @@ The UI follows a **Neo-Brutalist design system** (thick borders, vibrant primari
 
 ### 2. Security
 - **Strict Domain Locking**: The AI assistant is programmatically restricted from off-topic queries and code generation.
+- **Backend Hardening**: Implemented **Helmet.js** for secure headers, **Express-Rate-Limit** for DDoS protection, and **Zod** for strict input validation.
+- **Content Security Policy (CSP)**: Robust CSP implemented to prevent XSS and data injection.
 - **Environment Safety**: Zero hardcoded keys; 100% environment variable injection for Firebase and AI SDKs.
-- **PII Filtering**: Automated removal of sensitive voter data (e.g., Father's name) during the OCR extraction process.
 
 ### 3. Efficiency
 - **Caching Strategy**: Implements `localStorage` caching for AI translations to minimize API latency and resource consumption.
 - **Memoization**: Utilizes `React.memo`, `useMemo`, and `useCallback` in high-render components like `BoothFinder` to ensure 60FPS performance.
 
 ### 4. Testing
-- **Production Test Suite**: Comprehensive backend API testing using **Supertest** and **Jest**, including robust mocking of AI SDKs to validate route contracts and error handling.
+- **Comprehensive Test Suite**: Over **26 test scripts** covering unit, integration, and contract testing across frontend and backend.
+- **CI/CD Workflow**: Automated testing via **GitHub Actions** (`main.yml`) ensuring code integrity on every push.
 
 ### 5. Accessibility (A11y)
-- **ARIA Integration**: Full implementation of ARIA roles (`main`, `list`, `listitem`, `region`) and labels to ensure compatibility with screen readers.
-- **Visual Legibility**: Neo-Brutalist design provides AA/AAA contrast ratios for text and UI elements.
+- **High Contrast Mode**: Native support for a WCAG-compliant high-contrast theme via a global toggle.
+- **Keyboard Optimization**: "Skip to Content" links and logical tab-order for zero-mouse navigation.
+- **ARIA Integration**: 100% implementation of ARIA roles (`main`, `list`, `listitem`, `region`) and labels.
 
 ### 6. Meaningful Google Services Integration
 - **Firebase Ecosystem**: 
+  - **Authentication**: Anonymous Auth implemented for secure, session-based user tracking.
+  - **Storage**: Real-time image uploads for Voter ID processing using **Firebase Storage**.
   - **Firestore**: Real-time synchronization of polling booth data.
   - **Analytics**: Strategic event logging (e.g., `booth_search`) to track voter engagement.
-  - **Hosting/Storage**: Optimized for high-availability distribution.
+- **YouTube API Integration**: Embedded official ECI Voter Guide video series for educational outreach.
 - **Google Maps**: Embedded interactive mapping for zero-friction navigation to polling stations.
 - **Google Fonts**: Performance-optimized delivery of Inter and regional scripts.

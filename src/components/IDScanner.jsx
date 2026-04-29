@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useVisionScanner } from '../hooks/useVisionScanner';
 import { Upload, FileImage, Loader2, FileText, MapPin, Calendar, Info, User, ExternalLink, ChevronRight } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { storage, auth } from '../firebase/config';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -39,23 +41,34 @@ export default function IDScanner() {
   const { scanImage, loading, result, error } = useVisionScanner();
   const [dragActive, setDragActive] = useState(false);
   const [isPdf, setIsPdf] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const handleFile = async (e) => {
     e.preventDefault();
     const file = e.dataTransfer?.files?.[0] || e.target.files?.[0];
     if (!file) return;
     setDragActive(false);
-    if (file.type === 'application/pdf') {
-      setIsPdf(true);
-      try {
-        const imageFile = await pdfToImage(file);
-        scanImage(imageFile);
-      } catch (err) {
-        console.error('PDF conversion failed:', err);
+    setUploading(true);
+
+    try {
+      let imageFile = file;
+      if (file.type === 'application/pdf') {
+        setIsPdf(true);
+        imageFile = await pdfToImage(file);
       }
-    } else {
-      setIsPdf(false);
-      scanImage(file);
+
+      // Meaningful Google Services Integration: Upload to Firebase Storage
+      const user = auth.currentUser;
+      const storageRef = ref(storage, `voter-ids/${user?.uid || 'anon'}/${Date.now()}_${imageFile.name}`);
+      await uploadBytes(storageRef, imageFile);
+      const downloadURL = await getDownloadURL(storageRef);
+      console.log('Image uploaded to Firebase Storage:', downloadURL);
+
+      await scanImage(imageFile);
+    } catch (err) {
+      console.error('Scan/Upload error:', err);
+    } finally {
+      setUploading(false);
     }
   };
 

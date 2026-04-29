@@ -44,9 +44,22 @@ export default function Sidebar({ onLanguageChange }) {
       <button 
         onClick={onLanguageChange}
         className="mt-8 flex items-center justify-center bg-white hover:bg-gray-200 text-black w-full brutal-btn"
+        aria-label="Change Application Language"
       >
         <Globe className="mr-2 stroke-[3]" />
         Change Language
+      </button>
+
+      {/* Accessibility Feature: High Contrast Mode */}
+      <button 
+        onClick={() => {
+          const isHighContrast = document.documentElement.getAttribute('data-contrast') === 'high';
+          document.documentElement.setAttribute('data-contrast', isHighContrast ? 'normal' : 'high');
+        }}
+        className="mt-4 flex items-center justify-center bg-brutalBlack text-white w-full brutal-btn"
+        aria-label="Toggle High Contrast Mode"
+      >
+        High Contrast
       </button>
     </div>
   );
