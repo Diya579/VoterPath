@@ -3,11 +3,14 @@ import { describe, it, expect, vi } from 'vitest';
 import LanguageSelector from '../LanguageSelector';
 import { useTranslation } from 'react-i18next';
 
+const mockChangeLanguage = vi.fn();
+const mockT = vi.fn(str => str);
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (str) => str,
+    t: mockT,
     i18n: {
-      changeLanguage: vi.fn(),
+      changeLanguage: mockChangeLanguage,
       language: 'en'
     }
   })
@@ -19,11 +22,11 @@ describe('LanguageSelector', () => {
     expect(screen.getByText('selectLanguage')).toBeDefined();
   });
 
-  it('triggers changeLanguage on selection', () => {
-    const { i18n } = useTranslation();
-    render(<LanguageSelector />);
-    const buttons = screen.getAllByRole('button');
-    fireEvent.click(buttons[1]); // Click Hindi button
-    expect(i18n.changeLanguage).toHaveBeenCalled();
+  it('triggers changeLanguage on selection', async () => {
+    const mockOnSelect = vi.fn();
+    render(<LanguageSelector onSelect={mockOnSelect} />);
+    const hindiButton = screen.getByRole('button', { name: /हिन्दी/i });
+    fireEvent.click(hindiButton);
+    expect(mockChangeLanguage).toHaveBeenCalledWith('hi');
   });
 });

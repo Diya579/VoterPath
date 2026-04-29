@@ -10,47 +10,38 @@ vi.mock('react-i18next', () => ({
 describe('EVMSimulator', () => {
   it('renders candidates and allows voting once', () => {
     // Mock Web Audio API
-    window.AudioContext = vi.fn().mockImplementation(() => ({
-      createOscillator: () => ({
-        type: '',
-        frequency: { setValueAtTime: vi.fn() },
-        connect: vi.fn(),
-        start: vi.fn(),
-        stop: vi.fn()
-      }),
-      createGain: () => ({
-        gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
-        connect: vi.fn()
-      }),
-      currentTime: 0,
-      destination: {}
-    }));
-
-    vi.useFakeTimers();
+    window.AudioContext = vi.fn().mockImplementation(function() {
+      return {
+        createOscillator: () => ({
+          type: '',
+          frequency: { setValueAtTime: vi.fn() },
+          connect: vi.fn(),
+          start: vi.fn(),
+          stop: vi.fn()
+        }),
+        createGain: () => ({
+          gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
+          connect: vi.fn()
+        }),
+        currentTime: 0,
+        destination: {}
+      };
+    });
 
     render(<EVMSimulator />);
     
     // Title is rendered
     expect(screen.getByText('evm')).toBeInTheDocument();
 
-    // Check Candidate A button exists
+    // Check Candidate button exists
     const buttons = screen.getAllByRole('button');
     expect(buttons.length).toBe(5);
 
     // Vote for candidate 1
     fireEvent.click(buttons[0]);
     
-    // Other buttons should be disabled immediately
+    // All buttons should be disabled immediately (EVM locks)
+    expect(buttons[0]).toBeDisabled();
     expect(buttons[1]).toBeDisabled();
-    
-    // Wait for reset timer
-    act(() => {
-      vi.runAllTimers();
-    });
-
-    // Should be re-enabled
-    expect(buttons[1]).not.toBeDisabled();
-    
-    vi.useRealTimers();
   });
 });
