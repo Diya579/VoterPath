@@ -44,7 +44,11 @@ export default function Chatbot() {
         <h2 className="text-4xl font-black uppercase inline-block bg-accent text-white p-3 brutal-border shadow-brutal-sm">{t('chat')}</h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-white p-8 brutal-card mb-6 space-y-8">
+      <div 
+        className="flex-1 overflow-y-auto bg-white p-8 brutal-card mb-6 space-y-8"
+        aria-live="polite"
+        aria-atomic="false"
+      >
         {messages.length === 0 && (
           <div className="text-center mt-20">
             <div className="bg-primary inline-block p-6 rounded-full brutal-border shadow-brutal-sm mb-6">

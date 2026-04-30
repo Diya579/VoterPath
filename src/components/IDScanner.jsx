@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useVisionScanner } from '../hooks/useVisionScanner';
-import { Upload, FileImage, Loader2, FileText, MapPin, Calendar, Info, User, ExternalLink, ChevronRight } from 'lucide-react';
+import { Upload, Loader2, FileText, MapPin, Calendar, Info, User, ExternalLink } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { storage, auth } from '../firebase/config';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -41,35 +41,43 @@ export default function IDScanner() {
   const { scanImage, loading, result, error } = useVisionScanner();
   const [dragActive, setDragActive] = useState(false);
   const [isPdf, setIsPdf] = useState(false);
-  const [uploading, setUploading] = useState(false);
 
   const handleFile = async (e) => {
     e.preventDefault();
-    const file = e.dataTransfer?.files?.[0] || e.target.files?.[0];
-    if (!file) return;
     setDragActive(false);
-    setUploading(true);
 
-    try {
-      let imageFile = file;
-      if (file.type === 'application/pdf') {
-        setIsPdf(true);
-        imageFile = await pdfToImage(file);
-      }
+    const file = e.dataTransfer ? e.dataTransfer.files[0] : e.target.files[0];
+    if (!file) return;
 
-      // Meaningful Google Services Integration: Upload to Firebase Storage
-      const user = auth.currentUser;
-      const storageRef = ref(storage, `voter-ids/${user?.uid || 'anon'}/${Date.now()}_${imageFile.name}`);
+    if (file.type === 'application/pdf') {
+      setIsPdf(true);
+      const imageFile = await pdfToImage(file);
+      
+      const storageRef = ref(storage, `voter-ids/${auth.currentUser?.uid || 'anon'}/${Date.now()}_${imageFile.name}`);
       await uploadBytes(storageRef, imageFile);
-      const downloadURL = await getDownloadURL(storageRef);
-      console.log('Image uploaded to Firebase Storage:', downloadURL);
-
+      
       await scanImage(imageFile);
-    } catch (err) {
-      console.error('Scan/Upload error:', err);
-    } finally {
-      setUploading(false);
+      return;
     }
+    
+    setIsPdf(false);
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const base64Data = e.target.result;
+        
+        const storageRef = ref(storage, `scans/${auth.currentUser?.uid || 'anon'}_${Date.now()}.jpg`);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        console.log("Securely archived at:", url);
+
+        await scanImage(base64Data);
+      } catch (err) {
+        console.error("Storage Error", err);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const suggestLanguage = (region, code, label) => {
@@ -137,23 +145,24 @@ export default function IDScanner() {
         </ol>
       </div>
 
-      {loading && (
-        <div className="flex items-center justify-center p-6 brutal-card bg-primary">
-          <Loader2 className="w-10 h-10 animate-spin mr-4 stroke-[3]" />
-          <span className="text-2xl font-bold uppercase">
-            {isPdf ? 'Converting PDF & Scanning...' : 'Extracting details from your Voter ID...'}
-          </span>
-        </div>
-      )}
+      <div aria-live="polite" aria-atomic="true">
+        {loading && (
+          <div className="flex items-center justify-center p-6 brutal-card bg-primary mt-6">
+            <Loader2 className="w-10 h-10 animate-spin mr-4 stroke-[3]" />
+            <span className="text-2xl font-bold uppercase">
+              {isPdf ? 'Converting PDF & Scanning...' : 'Extracting details from your Voter ID...'}
+            </span>
+          </div>
+        )}
 
-      {error && (
-        <div className="p-6 brutal-card bg-secondary text-white">
-          <p className="text-xl font-bold uppercase">{error}</p>
-        </div>
-      )}
+        {error && (
+          <div className="p-6 brutal-card bg-secondary text-white mt-6">
+            <p className="text-xl font-bold uppercase">{error}</p>
+          </div>
+        )}
 
-      {result && (
-        <div className="space-y-6">
+        {result && !loading && !error && (    
+          <div className="space-y-6">
           {/* Voter Details Card */}
           <div className="brutal-card bg-white p-8">
             <h3 className="text-3xl font-black mb-6 flex items-center gap-3">
@@ -272,6 +281,7 @@ export default function IDScanner() {
           {suggestLanguage('Odisha', 'or', 'Odia')}
         </div>
       )}
+      </div>
     </div>
   );
 }

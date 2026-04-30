@@ -1,5 +1,12 @@
 import { useTranslation } from 'react-i18next';
+import PropTypes from 'prop-types';
 
+/**
+ * Language Selection Modal
+ * @param {Object} props - Component props
+ * @param {Function} props.onSelect - Callback executed after a language is selected
+ * @returns {JSX.Element} The rendered LanguageSelector component
+ */
 export default function LanguageSelector({ onSelect }) {
   const { t, i18n } = useTranslation();
 
@@ -53,3 +60,7 @@ export default function LanguageSelector({ onSelect }) {
     </div>
   );
 }
+
+LanguageSelector.propTypes = {
+  onSelect: PropTypes.func.isRequired,
+};

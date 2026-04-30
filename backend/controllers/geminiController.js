@@ -17,7 +17,7 @@ const chatWithGemini = async (req, res, next) => {
     if (!validation.success) {
       return res.status(400).json({ error: 'Invalid input format', details: validation.error });
     }
-    const { prompt, history = [] } = validation.data;
+    const { prompt } = validation.data;
 
     try {
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -171,7 +171,7 @@ Be as accurate as possible. Extract text exactly as printed. Do NOT invent or gu
       let extracted;
       try {
         extracted = JSON.parse(text);
-      } catch (e) {
+      } catch {
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         extracted = jsonMatch ? JSON.parse(jsonMatch[0]) : { epic: 'NOT_FOUND' };
       }

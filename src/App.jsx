@@ -37,15 +37,12 @@ function Home() {
 }
 
 export default function App() {
-  const [showLangSelector, setShowLangSelector] = useState(false);
+  const [showLangSelector, setShowLangSelector] = useState(() => !localStorage.getItem('voterLanguage'));
 
   useEffect(() => {
     // Meaningful Google Services Integration: Ensuring secure, authenticated sessions
     signInAnonymously(auth).catch(console.error);
     seedDatabase();
-    if (!localStorage.getItem('voterLanguage')) {
-      setShowLangSelector(true);
-    }
   }, []);
 
   if (showLangSelector) {

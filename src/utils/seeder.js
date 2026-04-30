@@ -1,5 +1,5 @@
 import { db } from '../firebase/config';
-import { collection, doc, setDoc, getDocs } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 const SEED_VERSION = 'v4'; // bump this to force a re-seed
 

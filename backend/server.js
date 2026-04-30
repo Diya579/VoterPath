@@ -14,13 +14,24 @@ const PORT = process.env.PORT || 8080;
 
 // SECURITY HARDENING (100/100 Evaluation Suite)
 app.use(helmet({
+  hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+  xssFilter: true,
+  noSniff: true,
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
+      scriptSrc: ["'self'", "https://www.googletagmanager.com"],
+      connectSrc: [
+        "'self'", 
+        "https://*.googleapis.com", 
+        "https://firestore.googleapis.com", 
+        "https://identitytoolkit.googleapis.com", 
+        "https://firebasestorage.googleapis.com",
+        "https://www.google-analytics.com"
+      ],
+      imgSrc: ["'self'", "data:", "blob:", "https://firebasestorage.googleapis.com"],
+      frameSrc: ["'self'", "https://www.youtube.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      imgSrc: ["'self'", "data:", "https://*.firebasestorage.app"],
-      connectSrc: ["'self'", "https://*.firebaseio.com", "https://*.googleapis.com", "https://api.groq.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
@@ -54,9 +65,10 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Error Handling Middleware
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong on the server!' });
+  res.status(500).json({ error: 'Something broke!' });
 });
 
 // Start server only if we're not running tests

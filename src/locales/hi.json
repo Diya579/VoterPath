@@ -35,5 +35,7 @@
   "eVoterStep2": "होमपेज पर \"e-EPIC डाउनलोड\" पर क्लिक करें।",
   "eVoterStep3": "अपना EPIC नंबर या पंजीकृत मोबाइल नंबर दर्ज करें।",
   "eVoterStep4": "आपके पंजीकृत मोबाइल नंबर पर भेजे गए OTP से सत्यापित करें।",
-  "eVoterStep5": "आपका e-EPIC (डिजिटल वोटर आईडी PDF) स्वचालित रूप से डाउनलोड हो जाएगा। इसे यहाँ सीधे अपलोड कर सकते हैं!"
+  "eVoterStep5": "आपका e-EPIC (डिजिटल वोटर आईडी PDF) स्वचालित रूप से डाउनलोड हो जाएगा। इसे यहाँ सीधे अपलोड कर सकते हैं!",
+  "voterRegistration": "Voter Registration",
+  "knowYourCandidate": "Know Your Candidate"
 }

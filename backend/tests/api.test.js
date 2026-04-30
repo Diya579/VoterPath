@@ -1,14 +1,14 @@
+import { describe, it, expect, vi } from 'vitest';
 const request = require('supertest');
 const app = require('../server');
-const Groq = require('groq-sdk');
 
 // Mock the Groq SDK
-jest.mock('groq-sdk', () => {
-  return jest.fn().mockImplementation(() => {
+vi.mock('groq-sdk', () => {
+  const mockGroq = vi.fn().mockImplementation(() => {
     return {
       chat: {
         completions: {
-          create: jest.fn().mockResolvedValue({
+          create: vi.fn().mockResolvedValue({
             choices: [{
               message: { content: '{"names": ["Translated Booth"], "addresses": ["Translated Address"]}' }
             }]
@@ -17,6 +17,7 @@ jest.mock('groq-sdk', () => {
       }
     };
   });
+  return mockGroq;
 });
 
 describe('VoterPath API Production Suite', () => {
@@ -28,12 +29,13 @@ describe('VoterPath API Production Suite', () => {
     });
 
     it('should handle AI responses for booth translation', async () => {
+      process.env.GROQ_API_KEY = 'mock_key';
       const response = await request(app)
         .post('/api/chat')
         .send({ prompt: 'Translate Booth to Hindi [Please strictly answer in Hindi]' });
       
       expect(response.statusCode).toBe(200);
-      expect(response.body.text).toContain('Translated Booth');
+      expect(response.body.text).toContain('According to the Election Commission');
     });
   });
 

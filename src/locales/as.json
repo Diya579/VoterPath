@@ -35,5 +35,7 @@
   "eVoterStep2": "হোমপেজত \"e-EPIC ডাউনলোড\" বুতামত ক্লিক কৰক.",
   "eVoterStep3": "আপোনাৰ EPIC নম্বৰ বা নথিভুক্ত মোবাইল নম্বৰ দিয়ক.",
   "eVoterStep4": "নথিভুক্ত মোবাইললৈ আহা OTPৰে যাঁচকৰক.",
-  "eVoterStep5": "আপোনাৰ e-EPIC (ডিজিটেল ভোটাৰ আইডি PDF) স্বয়ংক্রিয়ভাৱে ডাউনলোড হৱ. ইয়াক ইয়াতেই সোধাসুধিকে অপলোড কৰিব পাৰিব!"
+  "eVoterStep5": "আপোনাৰ e-EPIC (ডিজিটেল ভোটাৰ আইডি PDF) স্বয়ংক্রিয়ভাৱে ডাউনলোড হৱ. ইয়াক ইয়াতেই সোধাসুধিকে অপলোড কৰিব পাৰিব!",
+  "voterRegistration": "Voter Registration",
+  "knowYourCandidate": "Know Your Candidate"
 }

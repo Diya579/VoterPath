@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Schedules are public read-only
+    match /schedules/{document} {
+      allow read: if true;
+      allow write: if false; // Only written via Admin SDK/Console
+    }
+    
+    // Booths are public read-only
+    match /booths/{document} {
+      allow read: if true;
+      allow write: if false; // Only written via Admin SDK/Console
+    }
+
+    // Default deny for anything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

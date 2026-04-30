@@ -24,8 +24,12 @@ export const useGeminiChat = () => {
       const data = await response.json();
       setMessages(prev => [...prev, { role: 'assistant', content: data.text }]);
 
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Error connecting to the AI Expert. Please try again later.' }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        sender: 'bot',
+        text: 'Sorry, I am having trouble connecting to my servers right now.'
+      }]);
     } finally {
       setLoading(false);
     }

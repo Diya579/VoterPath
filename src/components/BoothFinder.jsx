@@ -133,7 +133,7 @@ export default function BoothFinder() {
       return;
     }
 
-    let rawBooths = [];
+    let rawBooths;
     try {
       const q = query(collection(db, 'booths'), where('constituency', '==', queryConst));
       const snapshot = await getDocs(q);
@@ -141,7 +141,7 @@ export default function BoothFinder() {
       if (rawBooths.length === 0) {
         rawBooths = fallbackBooths.filter(b => b.constituency === queryConst);
       }
-    } catch (err) {
+    } catch {
       rawBooths = fallbackBooths.filter(b => b.constituency === queryConst);
     }
 
@@ -160,6 +160,7 @@ export default function BoothFinder() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAndTranslate(constituency, currentLang);
   }, [currentLang, fetchAndTranslate, constituency]);
 

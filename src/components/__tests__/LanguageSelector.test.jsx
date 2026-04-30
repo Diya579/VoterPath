@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import LanguageSelector from '../LanguageSelector';
-import { useTranslation } from 'react-i18next';
+// removed useTranslation import
 
 const mockChangeLanguage = vi.fn();
 const mockT = vi.fn(str => str);

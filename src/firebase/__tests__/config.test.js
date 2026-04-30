@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { db, analytics } from './config';
+import { db, analytics } from '../config';
 
 describe('Firebase Configuration', () => {
   it('exports db and analytics', () => {

@@ -35,5 +35,7 @@
   "eVoterStep2": "Click on \"e-EPIC Download\" on the homepage.",
   "eVoterStep3": "Enter your EPIC number or mobile number registered with your Voter ID.",
   "eVoterStep4": "Verify using the OTP sent to your registered mobile number.",
-  "eVoterStep5": "Your e-EPIC (digital Voter ID PDF) will download automatically. You can upload it directly here!"
+  "eVoterStep5": "Your e-EPIC (digital Voter ID PDF) will download automatically. You can upload it directly here!",
+  "voterRegistration": "Voter Registration",
+  "knowYourCandidate": "Know Your Candidate"
 }

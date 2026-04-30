@@ -1,5 +1,4 @@
-const request = require('supertest');
-const app = require('../server');
+// Removed unused imports
 
 describe('Error Handling Middleware', () => {
   it('should return 500 on unexpected controller errors', async () => {

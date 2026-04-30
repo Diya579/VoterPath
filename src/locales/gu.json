@@ -37,5 +37,7 @@
   "eVoterStep4": "તમારા નોંધાયેલ મોબાઈલ પર આવેલ OTP વડે ચકાસો.",
   "eVoterStep5": "તમારો e-EPIC (ડિજિટલ વોટર આઈડી PDF) આપોઆપ ડાઉનલોડ થઈ જશે. તમે તેને અહીં સીધો અપલોડ કરી શકો છો!",
   "voterDetails": "મતદારની વિગતો",
-  "constituency": "વિધાનસભા મતવિસ્તાર"
+  "constituency": "વિધાનસભા મતવિસ્તાર",
+  "voterRegistration": "Voter Registration",
+  "knowYourCandidate": "Know Your Candidate"
 }

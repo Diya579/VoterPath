@@ -1,7 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { Home, Calendar, Scan, MapPin, CheckSquare, MessageSquare, Globe } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import PropTypes from 'prop-types';
 
+/**
+ * Sidebar navigation component
+ * @param {Object} props - Component props
+ * @param {Function} props.onLanguageChange - Callback triggered to open the language selection modal
+ * @returns {JSX.Element} The rendered Sidebar component
+ */
 export default function Sidebar({ onLanguageChange }) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -39,6 +46,27 @@ export default function Sidebar({ onLanguageChange }) {
             );
           })}
         </nav>
+
+        <div className="mt-8 space-y-4">
+          <a
+            href="https://voters.eci.gov.in/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center p-4 transition-all brutal-border shadow-brutal-sm font-bold text-lg bg-yellow-300 hover:bg-yellow-400 text-black hover:translate-x-1 hover:translate-y-1 hover:shadow-brutal-hover"
+          >
+            <CheckSquare className="mr-3 w-6 h-6 stroke-[3]" />
+            {t('voterRegistration')}
+          </a>
+          <a
+            href="https://affidavit.eci.gov.in/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center p-4 transition-all brutal-border shadow-brutal-sm font-bold text-lg bg-green-300 hover:bg-green-400 text-black hover:translate-x-1 hover:translate-y-1 hover:shadow-brutal-hover"
+          >
+            <MessageSquare className="mr-3 w-6 h-6 stroke-[3]" />
+            {t('knowYourCandidate')}
+          </a>
+        </div>
       </div>
 
       <button 
@@ -64,3 +92,7 @@ export default function Sidebar({ onLanguageChange }) {
     </div>
   );
 }
+
+Sidebar.propTypes = {
+  onLanguageChange: PropTypes.func.isRequired,
+};

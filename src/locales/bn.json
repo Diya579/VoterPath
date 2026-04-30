@@ -35,5 +35,7 @@
   "eVoterStep2": "হোমপেজে \"e-EPIC ডাউনলোড\" বোতামে ক্লিক করুন।",
   "eVoterStep3": "আপনার EPIC নম্বর বা নিবন্ধিত মোবাইল নম্বর দিন।",
   "eVoterStep4": "নিবন্ধিত মোবাইলে আসা OTP দিয়ে যাচাই করুন।",
-  "eVoterStep5": "আপনার e-EPIC (ডিজিটাল ভোটার আইডি PDF) স্বয়ংক্রিয়ভাবে ডাউনলোড হবে। এটি এখানে সরাসরি আপলোড করতে পারবেন!"
+  "eVoterStep5": "আপনার e-EPIC (ডিজিটাল ভোটার আইডি PDF) স্বয়ংক্রিয়ভাবে ডাউনলোড হবে। এটি এখানে সরাসরি আপলোড করতে পারবেন!",
+  "voterRegistration": "Voter Registration",
+  "knowYourCandidate": "Know Your Candidate"
 }
