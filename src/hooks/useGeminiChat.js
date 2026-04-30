@@ -11,7 +11,7 @@ export const useGeminiChat = () => {
 
     try {
       // Calls our secure Node.js backend instead of exposing Gemini key
-      const response = await fetch('http://localhost:3000/api/chat', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt })

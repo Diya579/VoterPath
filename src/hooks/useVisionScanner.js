@@ -21,7 +21,7 @@ export const useVisionScanner = () => {
       formData.append('image', file);
 
       // Call our secure Node.js backend instead of exposing the API key
-      const response = await fetch('http://localhost:3000/api/scan', {
+      const response = await fetch('/api/scan', {
         method: 'POST',
         body: formData
       });
