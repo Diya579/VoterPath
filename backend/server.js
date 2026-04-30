@@ -30,7 +30,7 @@ app.use(helmet({
         "https://www.google-analytics.com"
       ],
       imgSrc: ["'self'", "data:", "blob:", "https://firebasestorage.googleapis.com"],
-      frameSrc: ["'self'", "https://www.youtube.com"],
+      frameSrc: ["'self'", "https://www.youtube.com", "https://maps.google.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
