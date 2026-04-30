@@ -20,7 +20,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://www.googletagmanager.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
       connectSrc: [
         "'self'", 
         "https://*.googleapis.com", 
@@ -30,7 +30,7 @@ app.use(helmet({
         "https://www.google-analytics.com"
       ],
       imgSrc: ["'self'", "data:", "blob:", "https://firebasestorage.googleapis.com"],
-      frameSrc: ["'self'", "https://www.youtube.com", "https://maps.google.com"],
+      frameSrc: ["'self'", "https://www.youtube.com", "https://maps.google.com", "https://www.google.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
