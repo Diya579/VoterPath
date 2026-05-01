@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGeminiChat } from '../hooks/useGeminiChat';
 import { Send, User, Bot, Loader2 } from 'lucide-react';
+import { langNames } from '../utils/constants';
 
 /**
  * Chatbot Component: A domain-locked AI assistant for election queries.
@@ -11,6 +12,7 @@ export default function Chatbot() {
   const { t, i18n } = useTranslation();
   const { messages, sendMessage, loading } = useGeminiChat();
   const [input, setInput] = useState('');
+  const currentLang = i18n.language || 'en';
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -25,13 +27,6 @@ export default function Chatbot() {
     e.preventDefault();
     if (!input.trim() || loading) return;
     
-    // Append the current language instruction to ensure Groq replies in the right language
-    const currentLang = i18n.language || 'en';
-    const langNames = {
-      en: 'English', hi: 'Hindi', ta: 'Tamil', bn: 'Bengali', gu: 'Gujarati',
-      te: 'Telugu', mr: 'Marathi', ur: 'Urdu', kn: 'Kannada', or: 'Odia',
-      ml: 'Malayalam', pa: 'Punjabi', as: 'Assamese', ne: 'Nepali', ks: 'Kashmiri'
-    };
     const langInstruction = currentLang !== 'en' ? ` [Please strictly answer in ${langNames[currentLang] || 'Hindi'}]` : ' [Please strictly answer in English]';
     
     sendMessage(input + langInstruction);

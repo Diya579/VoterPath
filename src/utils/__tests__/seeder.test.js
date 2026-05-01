@@ -6,7 +6,11 @@ vi.mock('firebase/firestore', () => ({
   getDocs: vi.fn().mockResolvedValue({ empty: false }),
   addDoc: vi.fn(),
   setDoc: vi.fn().mockResolvedValue(),
-  doc: vi.fn()
+  doc: vi.fn(),
+  writeBatch: vi.fn(() => ({
+    set: vi.fn(),
+    commit: vi.fn().mockResolvedValue()
+  }))
 }));
 
 vi.mock('../../firebase/config', () => ({ db: {} }));

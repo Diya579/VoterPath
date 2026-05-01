@@ -18,17 +18,18 @@ export const useGeminiChat = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error(`Server error: ${response.status}`);
       }
 
       const data = await response.json();
+      // BUGFIX: use consistent { role, content } shape — previously used { id, sender, text }
       setMessages(prev => [...prev, { role: 'assistant', content: data.text }]);
 
-    } catch {
+    } catch (err) {
+      // Use consistent message shape so Chatbot.jsx renders msg.content correctly
       setMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        sender: 'bot',
-        text: 'Sorry, I am having trouble connecting to my servers right now.'
+        role: 'assistant',
+        content: 'Sorry, I am having trouble connecting to my servers right now. Please try again.'
       }]);
     } finally {
       setLoading(false);

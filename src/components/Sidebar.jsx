@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Home, Calendar, Scan, MapPin, CheckSquare, MessageSquare, Globe } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { useEffect } from 'react';
 
 /**
  * Sidebar navigation component
@@ -12,6 +13,14 @@ import PropTypes from 'prop-types';
 export default function Sidebar({ onLanguageChange }) {
   const { t } = useTranslation();
   const location = useLocation();
+
+  // Persist high contrast preference across sessions
+  useEffect(() => {
+    const saved = localStorage.getItem('highContrast');
+    if (saved === 'true') {
+      document.documentElement.setAttribute('data-contrast', 'high');
+    }
+  }, []);
 
   const links = [
     { name: t('home'), path: '/', icon: Home, color: 'bg-primary' },
@@ -34,7 +43,7 @@ export default function Sidebar({ onLanguageChange }) {
             const isActive = location.pathname === link.path;
             return (
               <Link
-                key={link.name}
+                key={link.path}
                 to={link.path}
                 className={`flex items-center p-4 transition-all brutal-border shadow-brutal-sm font-bold text-lg hover:translate-x-1 hover:translate-y-1 hover:shadow-brutal-hover ${
                   isActive ? `${link.color} text-black` : 'bg-white hover:bg-gray-100 text-black'
@@ -82,7 +91,9 @@ export default function Sidebar({ onLanguageChange }) {
       <button 
         onClick={() => {
           const isHighContrast = document.documentElement.getAttribute('data-contrast') === 'high';
-          document.documentElement.setAttribute('data-contrast', isHighContrast ? 'normal' : 'high');
+          const next = isHighContrast ? 'normal' : 'high';
+          document.documentElement.setAttribute('data-contrast', next);
+          localStorage.setItem('highContrast', String(next === 'high'));
         }}
         className="mt-4 flex items-center justify-center bg-brutalBlack text-white w-full brutal-btn"
         aria-label="Toggle High Contrast Mode"

@@ -1,10 +1,8 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useVisionScanner } from '../hooks/useVisionScanner';
 import { Upload, Loader2, FileText, MapPin, Calendar, Info, User, ExternalLink } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { storage, auth } from '../firebase/config';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.mjs',
@@ -41,35 +39,34 @@ export default function IDScanner() {
   const { scanImage, loading, result, error } = useVisionScanner();
   const [dragActive, setDragActive] = useState(false);
   const [isPdf, setIsPdf] = useState(false);
+  const fileInputRef = useRef(null);
 
-  const handleFile = async (e) => {
-    e.preventDefault();
-    setDragActive(false);
-
-    const file = e.dataTransfer ? e.dataTransfer.files[0] : e.target.files[0];
+  const processFile = useCallback(async (file) => {
     if (!file) return;
-
     if (file.type === 'application/pdf') {
       setIsPdf(true);
       const imageFile = await pdfToImage(file);
       await scanImage(imageFile);
-      return;
+    } else {
+      setIsPdf(false);
+      await scanImage(file);
     }
-    
-    setIsPdf(false);
-    
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const base64Data = e.target.result;
-        // Directly process without storing PII on Firebase
-        await scanImage(file); // scanImage takes the file for FormData
-      } catch (err) {
-        console.error("Scanner Error", err);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
+  }, [scanImage]);
+
+  const handleFile = useCallback(async (e) => {
+    e.preventDefault();
+    setDragActive(false);
+    const file = e.dataTransfer ? e.dataTransfer.files[0] : e.target.files[0];
+    await processFile(file);
+  }, [processFile]);
+
+  // Keyboard accessibility: Enter/Space triggers file browser on the drop zone
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInputRef.current?.click();
+    }
+  }, []);
 
   const suggestLanguage = (region, code, label) => {
     if (result?.detectedRegion === region && i18n.language !== code) {
@@ -87,29 +84,41 @@ export default function IDScanner() {
     <div className="max-w-3xl space-y-8">
       <h2 className="text-4xl font-black uppercase inline-block bg-secondary text-white p-3 brutal-border shadow-brutal-sm -rotate-1">{t('scanner')}</h2>
 
-      {/* Upload Zone */}
+      {/* Upload Zone — accessible via keyboard and screen reader */}
       <div
-        className={`brutal-card p-12 text-center transition-all ${dragActive ? 'bg-primary border-dashed' : 'bg-white border-solid'}`}
+        role="region"
+        aria-label="Voter ID upload zone. Drag and drop your voter ID card here, or press Enter to browse files."
+        tabIndex={0}
+        className={`brutal-card p-12 text-center transition-all cursor-pointer ${dragActive ? 'bg-primary border-dashed' : 'bg-white border-solid'}`}
         onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
         onDragLeave={() => setDragActive(false)}
         onDrop={handleFile}
+        onKeyDown={handleKeyDown}
+        onClick={() => fileInputRef.current?.click()}
       >
         <div className="flex justify-center gap-4 mb-6">
-          <Upload className="w-16 h-16 stroke-[3]" />
-          <FileText className="w-16 h-16 stroke-[3] text-secondary" />
+          <Upload className="w-16 h-16 stroke-[3]" aria-hidden="true" />
+          <FileText className="w-16 h-16 stroke-[3] text-secondary" aria-hidden="true" />
         </div>
         <p className="text-2xl font-bold mb-4 uppercase">{t('uploadID')}</p>
         <p className="text-lg font-semibold text-gray-500 mb-8">Supports: JPG, PNG, WEBP, and PDF (e-EPIC) files</p>
-        <label className="brutal-btn bg-tertiary text-black inline-block cursor-pointer">
+        <label className="brutal-btn bg-tertiary text-black inline-block cursor-pointer" aria-hidden="true">
           Browse Files
-          <input type="file" className="hidden" accept="image/*,application/pdf" onChange={handleFile} />
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*,application/pdf"
+            onChange={handleFile}
+            aria-label="Upload voter ID file"
+          />
         </label>
       </div>
 
       {/* How to get e-Voter ID */}
       <div className="brutal-card bg-white p-8">
         <h3 className="text-2xl font-black uppercase mb-6 flex items-center gap-3">
-          <span className="bg-primary p-2 brutal-border"><ExternalLink className="w-6 h-6 stroke-[3]" /></span>
+          <span className="bg-primary p-2 brutal-border"><ExternalLink className="w-6 h-6 stroke-[3]" aria-hidden="true" /></span>
           {t('eVoterGuideTitle')}
         </h3>
         <ol className="space-y-4">
@@ -127,7 +136,7 @@ export default function IDScanner() {
                 {s.link && (
                   <a href={s.link} target="_blank" rel="noopener noreferrer"
                     className="text-secondary underline font-black inline-flex items-center gap-1">
-                    {s.linkLabel} <ExternalLink className="w-4 h-4" />
+                    {s.linkLabel} <ExternalLink className="w-4 h-4" aria-hidden="true" />
                   </a>
                 )}
               </span>
@@ -138,8 +147,8 @@ export default function IDScanner() {
 
       <div aria-live="polite" aria-atomic="true">
         {loading && (
-          <div className="flex items-center justify-center p-6 brutal-card bg-primary mt-6">
-            <Loader2 className="w-10 h-10 animate-spin mr-4 stroke-[3]" />
+          <div className="flex items-center justify-center p-6 brutal-card bg-primary mt-6" role="status">
+            <Loader2 className="w-10 h-10 animate-spin mr-4 stroke-[3]" aria-hidden="true" />
             <span className="text-2xl font-bold uppercase">
               {isPdf ? 'Converting PDF & Scanning...' : 'Extracting details from your Voter ID...'}
             </span>
@@ -147,7 +156,7 @@ export default function IDScanner() {
         )}
 
         {error && (
-          <div className="p-6 brutal-card bg-secondary text-white mt-6">
+          <div className="p-6 brutal-card bg-secondary text-white mt-6" role="alert">
             <p className="text-xl font-bold uppercase">{error}</p>
           </div>
         )}
@@ -157,7 +166,7 @@ export default function IDScanner() {
           {/* Voter Details Card */}
           <div className="brutal-card bg-white p-8">
             <h3 className="text-3xl font-black mb-6 flex items-center gap-3">
-              <span className="bg-accent text-white p-2 brutal-border"><User className="w-8 h-8 stroke-[3] text-white" /></span>
+              <span className="bg-accent text-white p-2 brutal-border"><User className="w-8 h-8 stroke-[3] text-white" aria-hidden="true" /></span>
               {t('voterDetails') || 'Voter Details'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -189,7 +198,7 @@ export default function IDScanner() {
           {/* Detected Region & Polling Station */}
           <div className="brutal-card bg-tertiary p-8">
             <h3 className="text-3xl font-black mb-6 flex items-center gap-3">
-              <span className="bg-white p-2 brutal-border"><MapPin className="w-8 h-8 stroke-[3]" /></span>
+              <span className="bg-white p-2 brutal-border"><MapPin className="w-8 h-8 stroke-[3]" aria-hidden="true" /></span>
               {t('detectedRegion')}
             </h3>
             <div className="space-y-4">
@@ -228,7 +237,7 @@ export default function IDScanner() {
           {result.election && (
             <div className="brutal-card bg-primary p-8 -rotate-1">
               <h3 className="text-3xl font-black mb-6 flex items-center gap-3">
-                <span className="bg-brutalBlack text-white p-2 brutal-border"><Calendar className="w-8 h-8 stroke-[3]" /></span>
+                <span className="bg-brutalBlack text-white p-2 brutal-border"><Calendar className="w-8 h-8 stroke-[3]" aria-hidden="true" /></span>
                 Upcoming Election
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -251,7 +260,7 @@ export default function IDScanner() {
               </div>
               <div className="mt-4 bg-white p-4 brutal-border shadow-brutal-sm">
                 <p className="text-sm font-black uppercase text-gray-500 mb-2 flex items-center gap-2">
-                  <Info className="w-4 h-4 stroke-[3]" /> What You Should Know
+                  <Info className="w-4 h-4 stroke-[3]" aria-hidden="true" /> What You Should Know
                 </p>
                 <p className="text-lg font-bold">{result.election.notes}</p>
               </div>

@@ -47,9 +47,25 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Middleware — CORS: explicit allowlist, no wildcard
+const allowedOrigins = [
+  'https://voterpath-776684989084.us-central1.run.app',
+  'http://localhost:5173',
+  'http://localhost:8080'
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow server-to-server requests (no origin) and listed origins only
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS policy: origin ${origin} is not allowed.`));
+    }
+  },
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json({ limit: '1mb' }));
 
 const path = require('path');
 

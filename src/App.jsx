@@ -7,8 +7,6 @@ import EVMSimulator from './components/EVMSimulator';
 import Chatbot from './components/Chatbot';
 import ElectionTimeline from './components/ElectionTimeline';
 import BoothFinder from './components/BoothFinder';
-import { auth } from './firebase/config';
-import { signInAnonymously } from 'firebase/auth';
 import { seedDatabase } from './utils/seeder';
 import { useTranslation } from 'react-i18next';
 

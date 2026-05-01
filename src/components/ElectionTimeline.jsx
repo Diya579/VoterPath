@@ -31,10 +31,10 @@ export default function ElectionTimeline() {
           data = fallbackSchedules;
         }
 
-        // Sort by type (poll first, then count) and then by date
+        // Sort: polls before counting, then chronologically by actual date
         data.sort((a, b) => {
-          if (a.type === b.type) return a.date.localeCompare(b.date);
-          return a.type === 'poll' ? -1 : 1;
+          if (a.type !== b.type) return a.type === 'poll' ? -1 : 1;
+          return new Date(a.date) - new Date(b.date);
         });
         setSchedules(data);
         localStorage.setItem('schedules', JSON.stringify(data));
@@ -72,7 +72,7 @@ export default function ElectionTimeline() {
           <p className="text-lg font-semibold text-gray-500 mt-2">Please wait while we seed the database for the first time.</p>
         </div>
       ) : (
-        <div className="relative border-l-8 border-brutalBlack ml-8 space-y-12 pb-12">
+        <ol className="relative border-l-8 border-brutalBlack ml-8 space-y-12 pb-12" role="list" aria-label="Election schedule timeline">
           {schedules.map((schedule, idx) => (
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
@@ -116,7 +116,7 @@ export default function ElectionTimeline() {
               </div>
             </motion.div>
           ))}
-        </div>
+        </ol>
       )}
 
       <div className="mt-12 brutal-card bg-primary p-8 rotate-1">

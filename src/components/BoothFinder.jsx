@@ -6,11 +6,7 @@ import { logEvent } from 'firebase/analytics';
 import { MapPin, Search, Info, Smartphone, Users, Accessibility, Loader2 } from 'lucide-react';
 import { fallbackBooths } from '../utils/fallbackData';
 
-const langNames = {
-  en: 'English', hi: 'Hindi', ta: 'Tamil', bn: 'Bengali', gu: 'Gujarati',
-  te: 'Telugu', mr: 'Marathi', ur: 'Urdu', kn: 'Kannada', or: 'Odia',
-  ml: 'Malayalam', pa: 'Punjabi', as: 'Assamese', ne: 'Nepali', ks: 'Kashmiri'
-};
+import { langNames } from '../utils/constants';
 
 /**
  * Translates polling booth names and addresses using the backend AI service.
@@ -119,18 +115,16 @@ export default function BoothFinder() {
   const fetchAndTranslate = useCallback(async (queryConst, lang) => {
     setLoading(true);
 
-    // Google Analytics: Track booth search event
-    logEvent(analytics, 'booth_search', {
-      constituency: queryConst,
-      language: lang
-    });
-
     const cacheKey = `booths_${queryConst}_${lang}`;
-    const cachedData = localStorage.getItem(cacheKey);
-    if (cachedData && JSON.parse(cachedData).length > 0) {
-      setBooths(JSON.parse(cachedData));
-      setLoading(false);
-      return;
+    const cachedItem = localStorage.getItem(cacheKey);
+    if (cachedItem) {
+      const { data: cached, ts } = JSON.parse(cachedItem);
+      // Invalidate cache after 24 hours to pick up Firestore updates
+      if (cached.length > 0 && Date.now() - ts < 24 * 60 * 60 * 1000) {
+        setBooths(cached);
+        setLoading(false);
+        return;
+      }
     }
 
     let rawBooths;
@@ -150,11 +144,11 @@ export default function BoothFinder() {
     if (lang !== 'en') {
       setTranslating(true);
       const translated = await translateBooths(rawBooths, lang);
-      localStorage.setItem(cacheKey, JSON.stringify(translated));
+      localStorage.setItem(cacheKey, JSON.stringify({ data: translated, ts: Date.now() }));
       setBooths(translated);
       setTranslating(false);
     } else {
-      localStorage.setItem(cacheKey, JSON.stringify(rawBooths));
+      localStorage.setItem(cacheKey, JSON.stringify({ data: rawBooths, ts: Date.now() }));
       setBooths(rawBooths);
     }
   }, []);
@@ -166,6 +160,8 @@ export default function BoothFinder() {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    // Analytics: only fire on explicit user-triggered search, not auto re-renders
+    if (analytics) logEvent(analytics, 'booth_search', { constituency, language: currentLang });
     localStorage.removeItem(`booths_${constituency}_${currentLang}`);
     fetchAndTranslate(constituency, currentLang);
   };
@@ -236,13 +232,11 @@ export default function BoothFinder() {
           <iframe
             width="100%"
             height="100%"
-            frameBorder="0"
-            scrolling="no"
-            marginHeight="0"
-            marginWidth="0"
-            title={`Interactive map showing polling booths in ${constituency}`}
             src={`https://maps.google.com/maps?q=${encodeURIComponent(constituency + ' India')}&t=&z=12&ie=UTF8&iwloc=&output=embed`}
-          ></iframe>
+            title={`Interactive map showing polling booths in ${constituency}`}
+            loading="lazy"
+            sandbox="allow-scripts allow-same-origin"
+            style={{ border: 0 }}></iframe>
         </div>
       </section>
 

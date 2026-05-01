@@ -74,7 +74,17 @@ export default function EVMSimulator() {
         </div>
       </div>
       
-      <p className="text-2xl font-bold bg-white inline-block p-4 brutal-border shadow-brutal-sm mt-8 uppercase">{t('evmInstruct')}</p>
+      {/* Accessible vote confirmation announcement */}
+      <p 
+        className="text-2xl font-bold bg-white inline-block p-4 brutal-border shadow-brutal-sm mt-8 uppercase"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        {votedFor
+          ? `✅ Vote cast for ${candidates.find(c => c.id === votedFor)?.name}. Your vote has been recorded.`
+          : t('evmInstruct')
+        }
+      </p>
     </div>
   );
 }

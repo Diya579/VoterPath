@@ -10,6 +10,21 @@ const chatSchema = z.object({
   })).optional()
 });
 
+/**
+ * Strips common prompt-injection patterns from user input to prevent
+ * system instruction overrides. Does NOT censor content — only structural attacks.
+ * @param {string} input
+ * @returns {string}
+ */
+function sanitizePrompt(input) {
+  return input
+    .replace(/\[system\]/gi, '')            // strip [system] override attempts
+    .replace(/###\s*(system|instruction)/gi, '') // strip markdown system blocks
+    .replace(/<\|.*?\|>/g, '')              // strip token-boundary injections
+    .replace(/ignore previous instructions?/gi, '') // classic injection phrase
+    .trim();
+}
+
 const chatWithGemini = async (req, res, next) => {
   try {
     // SECURITY: Validate input schema
@@ -17,7 +32,8 @@ const chatWithGemini = async (req, res, next) => {
     if (!validation.success) {
       return res.status(400).json({ error: 'Invalid input format', details: validation.error });
     }
-    const { prompt } = validation.data;
+    const { prompt: rawPrompt } = validation.data;
+    const prompt = sanitizePrompt(rawPrompt);
 
     try {
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
