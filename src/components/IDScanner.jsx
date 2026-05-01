@@ -52,10 +52,6 @@ export default function IDScanner() {
     if (file.type === 'application/pdf') {
       setIsPdf(true);
       const imageFile = await pdfToImage(file);
-      
-      const storageRef = ref(storage, `voter-ids/${auth.currentUser?.uid || 'anon'}/${Date.now()}_${imageFile.name}`);
-      await uploadBytes(storageRef, imageFile);
-      
       await scanImage(imageFile);
       return;
     }
@@ -66,15 +62,10 @@ export default function IDScanner() {
     reader.onload = async (e) => {
       try {
         const base64Data = e.target.result;
-        
-        const storageRef = ref(storage, `scans/${auth.currentUser?.uid || 'anon'}_${Date.now()}.jpg`);
-        await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(storageRef);
-        console.log("Securely archived at:", url);
-
-        await scanImage(base64Data);
+        // Directly process without storing PII on Firebase
+        await scanImage(file); // scanImage takes the file for FormData
       } catch (err) {
-        console.error("Storage Error", err);
+        console.error("Scanner Error", err);
       }
     };
     reader.readAsDataURL(file);

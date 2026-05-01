@@ -40,8 +40,8 @@ export default function App() {
   const [showLangSelector, setShowLangSelector] = useState(() => !localStorage.getItem('voterLanguage'));
 
   useEffect(() => {
-    // Meaningful Google Services Integration: Ensuring secure, authenticated sessions
-    signInAnonymously(auth).catch(console.error);
+    // Attempt anonymous sign-in, but silently proceed if unconfigured (fallback data will be used)
+    signInAnonymously(auth).catch(() => {});
     seedDatabase();
   }, []);
 
