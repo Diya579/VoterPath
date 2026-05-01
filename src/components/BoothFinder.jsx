@@ -118,12 +118,21 @@ export default function BoothFinder() {
     const cacheKey = `booths_${queryConst}_${lang}`;
     const cachedItem = localStorage.getItem(cacheKey);
     if (cachedItem) {
-      const { data: cached, ts } = JSON.parse(cachedItem);
-      // Invalidate cache after 24 hours to pick up Firestore updates
-      if (cached.length > 0 && Date.now() - ts < 24 * 60 * 60 * 1000) {
-        setBooths(cached);
-        setLoading(false);
-        return;
+      try {
+        const parsed = JSON.parse(cachedItem);
+        // Handle legacy array cache gracefully
+        const cached = Array.isArray(parsed) ? parsed : parsed.data;
+        const ts = parsed.ts || 0; // Legacy caches will have ts=0 and force a re-fetch
+        
+        // Invalidate cache after 24 hours to pick up Firestore updates
+        if (cached && cached.length > 0 && Date.now() - ts < 24 * 60 * 60 * 1000) {
+          setBooths(cached);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        // Corrupted cache
+        localStorage.removeItem(cacheKey);
       }
     }
 
