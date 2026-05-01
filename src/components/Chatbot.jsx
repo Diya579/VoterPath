@@ -32,7 +32,7 @@ export default function Chatbot() {
       te: 'Telugu', mr: 'Marathi', ur: 'Urdu', kn: 'Kannada', or: 'Odia',
       ml: 'Malayalam', pa: 'Punjabi', as: 'Assamese', ne: 'Nepali', ks: 'Kashmiri'
     };
-    const langInstruction = currentLang !== 'en' ? ` [Please strictly answer in ${langNames[currentLang] || 'Hindi'}]` : '';
+    const langInstruction = currentLang !== 'en' ? ` [Please strictly answer in ${langNames[currentLang] || 'Hindi'}]` : ' [Please strictly answer in English]';
     
     sendMessage(input + langInstruction);
     setInput('');
