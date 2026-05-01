@@ -19,13 +19,13 @@
 
 /* Accessibility: High Contrast Mode Overrides */
 [data-contrast="high"] {
-  --primary: #FFFF00 !important;
-  --secondary: #0000FF !important;
-  --tertiary: #00FF00 !important;
-  --accent: #FF00FF !important;
-  --surface: #FFFFFF !important;
-  --background: #000000 !important;
-  --brutalBlack: #000000 !important;
+  --color-primary: #FFFF00 !important;
+  --color-secondary: #0000FF !important;
+  --color-tertiary: #00FF00 !important;
+  --color-accent: #FF00FF !important;
+  --color-surface: #FFFFFF !important;
+  --color-background: #000000 !important;
+  --color-brutalBlack: #FFFFFF !important;
 }
 
 body {

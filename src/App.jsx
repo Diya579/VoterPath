@@ -25,7 +25,7 @@ function Home() {
         <div className="aspect-video">
           <iframe 
             className="w-full h-full border-2 border-brutalBlack"
-            src="https://www.youtube.com/embed/videoseries?list=PL_XvB5X3x3R0LpC9_5_Z_Z_Z_Z" 
+            src="https://www.youtube.com/embed/sA-eA3x3M8U" 
             title="ECI Voter Guide"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             allowFullScreen
