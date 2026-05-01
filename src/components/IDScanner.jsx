@@ -43,6 +43,14 @@ export default function IDScanner() {
 
   const processFile = useCallback(async (file) => {
     if (!file) return;
+    
+    // Strict client-side file type validation
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert(t('errorInvalidFile', 'Please upload a valid image (JPG, PNG, WEBP) or PDF file.'));
+      return;
+    }
+
     if (file.type === 'application/pdf') {
       setIsPdf(true);
       const imageFile = await pdfToImage(file);
@@ -51,7 +59,7 @@ export default function IDScanner() {
       setIsPdf(false);
       await scanImage(file);
     }
-  }, [scanImage]);
+  }, [scanImage, t]);
 
   const handleFile = useCallback(async (e) => {
     e.preventDefault();

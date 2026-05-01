@@ -44,7 +44,7 @@ export default function EVMSimulator() {
       
       <div className="bg-gray-200 p-10 brutal-border shadow-brutal relative">
         <div className="absolute top-4 right-4 bg-tertiary px-4 py-2 brutal-border shadow-brutal-sm font-black uppercase tracking-widest rotate-2">
-          Ready
+          {t('evmReady', 'Ready')}
         </div>
         
         <div className="space-y-6 mt-12 bg-white p-6 brutal-border">
@@ -81,7 +81,7 @@ export default function EVMSimulator() {
         aria-atomic="true"
       >
         {votedFor
-          ? `✅ Vote cast for ${candidates.find(c => c.id === votedFor)?.name}. Your vote has been recorded.`
+          ? `✅ ${t('voteCastFor', 'Vote cast for')} ${candidates.find(c => c.id === votedFor)?.name}. ${t('voteRecorded', 'Your vote has been recorded.')}`
           : t('evmInstruct')
         }
       </p>
