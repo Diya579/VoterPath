@@ -1,14 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import LanguageSelector from './components/LanguageSelector';
-import IDScanner from './components/IDScanner';
-import EVMSimulator from './components/EVMSimulator';
-import Chatbot from './components/Chatbot';
-import ElectionTimeline from './components/ElectionTimeline';
-import BoothFinder from './components/BoothFinder';
 import { seedDatabase } from './utils/seeder';
 import { useTranslation } from 'react-i18next';
+import { Loader2 } from 'lucide-react';
+
+// Code splitting: dynamically import heavy route components
+const IDScanner = lazy(() => import('./components/IDScanner'));
+const EVMSimulator = lazy(() => import('./components/EVMSimulator'));
+const Chatbot = lazy(() => import('./components/Chatbot'));
+const ElectionTimeline = lazy(() => import('./components/ElectionTimeline'));
+const BoothFinder = lazy(() => import('./components/BoothFinder'));
 
 function Home() {
   const { t } = useTranslation();
@@ -35,12 +38,24 @@ function Home() {
   );
 }
 
+// Fallback loader for Suspense
+const RouteLoader = () => (
+  <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+    <Loader2 className="w-16 h-16 animate-spin stroke-[3] text-primary" />
+    <p className="text-2xl font-black uppercase brutal-bg-white p-2 brutal-border">Loading Interface...</p>
+  </div>
+);
+
 export default function App() {
   const [showLangSelector, setShowLangSelector] = useState(() => !localStorage.getItem('voterLanguage'));
+  const hasSeeded = useRef(false);
 
   useEffect(() => {
-    // Anonymous auth removed to prevent 400 network errors in the console.
-    seedDatabase();
+    // Guard against React 18 Strict Mode double-invocation
+    if (!hasSeeded.current) {
+      seedDatabase();
+      hasSeeded.current = true;
+    }
   }, []);
 
   if (showLangSelector) {
@@ -53,14 +68,16 @@ export default function App() {
         <Sidebar onLanguageChange={() => setShowLangSelector(true)} />
         <main id="main-content" className="flex-1 ml-72 p-12" role="main">
           <div className="max-w-6xl mx-auto">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/timeline" element={<ElectionTimeline />} />
-              <Route path="/scanner" element={<IDScanner />} />
-              <Route path="/booth" element={<BoothFinder />} />
-              <Route path="/evm" element={<EVMSimulator />} />
-              <Route path="/chat" element={<Chatbot />} />
-            </Routes>
+            <Suspense fallback={<RouteLoader />}>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/timeline" element={<ElectionTimeline />} />
+                <Route path="/scanner" element={<IDScanner />} />
+                <Route path="/booth" element={<BoothFinder />} />
+                <Route path="/evm" element={<EVMSimulator />} />
+                <Route path="/chat" element={<Chatbot />} />
+              </Routes>
+            </Suspense>
           </div>
         </main>
       </div>
