@@ -4,7 +4,9 @@ import { seedDatabase } from '../seeder';
 vi.mock('firebase/firestore', () => ({
   collection: vi.fn(),
   getDocs: vi.fn().mockResolvedValue({ empty: false }),
-  addDoc: vi.fn()
+  addDoc: vi.fn(),
+  setDoc: vi.fn().mockResolvedValue(),
+  doc: vi.fn()
 }));
 
 vi.mock('../../firebase/config', () => ({ db: {} }));
