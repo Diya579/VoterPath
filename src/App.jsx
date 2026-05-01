@@ -40,8 +40,7 @@ export default function App() {
   const [showLangSelector, setShowLangSelector] = useState(() => !localStorage.getItem('voterLanguage'));
 
   useEffect(() => {
-    // Attempt anonymous sign-in, but silently proceed if unconfigured (fallback data will be used)
-    signInAnonymously(auth).catch(() => {});
+    // Anonymous auth removed to prevent 400 network errors in the console.
     seedDatabase();
   }, []);
 
