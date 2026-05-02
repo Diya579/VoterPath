@@ -22,18 +22,23 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://www.googletagmanager.com"],
+      scriptSrc: [
+        "'self'", 
+        "https://www.googletagmanager.com",
+        "'sha256-l+qgWK5RG3YkY0aXRCIUGa1v2wRXIXMfePQF7gHytWY='" // GA4 Initialization
+      ],
       connectSrc: [
         "'self'", 
         "https://*.googleapis.com", 
         "https://firestore.googleapis.com", 
         "https://identitytoolkit.googleapis.com", 
         "https://firebasestorage.googleapis.com",
-        "https://www.google-analytics.com"
+        "https://www.google-analytics.com",
+        "https://region1.google-analytics.com"
       ],
       imgSrc: ["'self'", "data:", "blob:", "https://firebasestorage.googleapis.com"],
       frameSrc: ["'self'", "https://www.youtube.com", "https://maps.google.com", "https://www.google.com"],
-      styleSrc: ["'self'", "https://fonts.googleapis.com"], // Removed unsafe-inline
+      styleSrc: ["'self'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
@@ -57,19 +62,22 @@ app.use('/api', limiter);
 app.use('/api/chat', strictAILimiter);
 app.use('/api/scan', strictAILimiter);
 
-// Middleware — CORS: Environment-driven origin enforcement
+// Global Middlewares
+app.use(express.json({ limit: '1mb' }));
+
+// CORS: Environment-driven origin enforcement — Applied only to API
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',') 
   : ['http://localhost:5173'];
 
-app.use(cors({
+const corsMiddleware = cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (e.g. same-origin, mobile apps, curl)
     if (!origin) {
       return callback(null, true);
     }
     
-    // Test mode allows a specific test origin or the standard allowed ones
+    // Test mode allows a specific test origin
     const isTest = process.env.NODE_ENV === 'test';
     const effectiveAllowed = isTest 
       ? [...allowedOrigins, 'https://voterpath-776684989084.us-central1.run.app']
@@ -85,11 +93,10 @@ app.use(cors({
   },
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
-app.use(express.json({ limit: '1mb' }));
+});
 
 // Routes
-app.use('/api', apiRoutes);
+app.use('/api', corsMiddleware, apiRoutes);
 
 // Serve static frontend in production
 if (process.env.NODE_ENV === 'production') {
