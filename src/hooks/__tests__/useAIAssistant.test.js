@@ -53,7 +53,8 @@ describe('useAIAssistant', () => {
   it('handles non-OK HTTP response as an error', async () => {
     global.fetch = vi.fn().mockResolvedValueOnce({
       ok: false,
-      status: 500
+      status: 500,
+      json: async () => ({ error: 'Service Unavailable' })
     });
 
     const { result } = renderHook(() => useAIAssistant());
@@ -63,6 +64,7 @@ describe('useAIAssistant', () => {
 
     const messages = result.current.messages;
     expect(messages[1].role).toBe('assistant');
-    expect(messages[1].content).toContain('trouble connecting');
+    // Content should now reflect the actual error message from the backend
+    expect(messages[1].content).toContain('Service Unavailable');
   });
 });

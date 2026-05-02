@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import { useVisionScanner } from '../../hooks/useVisionScanner';
 import IDScanner from '../IDScanner';
 
 vi.mock('react-i18next', () => ({
@@ -7,12 +8,12 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('../../hooks/useVisionScanner', () => ({
-  useVisionScanner: () => ({
+  useVisionScanner: vi.fn(() => ({
     scanImage: vi.fn(),
     loading: false,
     result: null,
     error: null
-  })
+  }))
 }));
 
 vi.mock('../../firebase/config', () => ({
@@ -44,17 +45,15 @@ describe('IDScanner', () => {
   });
 
   it('displays error message when error prop is set', () => {
-    vi.mock('../../hooks/useVisionScanner', () => ({
-      useVisionScanner: () => ({
-        scanImage: vi.fn(),
-        loading: false,
-        result: null,
-        error: 'File size must be under 2MB.'
-      })
-    }));
-    // Re-rendering with the mock state — verifies error branch is present
-    const { rerender } = render(<IDScanner />);
+    vi.mocked(useVisionScanner).mockReturnValue({
+      scanImage: vi.fn(),
+      loading: false,
+      result: null,
+      error: 'File size must be under 2MB.'
+    });
+    
+    render(<IDScanner />);
     // The error alert div should exist when error state is present
-    expect(document.querySelector('[aria-live="polite"]')).toBeDefined();
+    expect(screen.getByText(/File size must be under 2MB/i)).toBeDefined();
   });
 });
