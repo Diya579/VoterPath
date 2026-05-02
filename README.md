@@ -1,84 +1,70 @@
 # VoterPath India: Election Intelligence Platform (2026 Assembly Elections)
 
 ## 🗳️ Vertical: Civic Tech & Democratic Engagement
-VoterPath India is an advanced civic engagement platform designed to bridge the gap between complex election bureaucracy and the diverse Indian electorate. It provides a structured interface for the 2026 Assembly Elections across 5+ states (Tamil Nadu, Kerala, West Bengal, Assam, Puducherry), prioritizing data integrity and authoritative guidance.
+VoterPath India is a technical bridge between election bureaucracy and the electorate. It provides a structured interface for the 2026 Assembly Elections across 5+ states (Tamil Nadu, Kerala, West Bengal, Assam, Puducherry), prioritizing deterministic facts and multi-lingual accessibility.
 
 ---
 
 ## 🛠️ Approach & Logic
 
-### 1. "Native Script First" Localization
-Recognizing that election accessibility is a language problem, VoterPath implements a **Native Script Mandate**. Our AI engine (powered by Google Gemini 2.0 Flash) is constrained to respond in the authentic script of the selected language (e.g., ગુજરાતી, தமிழ், हिन्दी), ensuring trust and readability for local voters.
+### 1. Deterministic Authority Layer
+Unlike standard LLMs that generate probabilistic answers, VoterPath uses a **Dual-Path Architecture**:
+- **Authoritative Service**: `eciService.js` acts as the single gateway to a curated election manifest (`electionFacts.json`). This ensures that dates, seat counts, and procedures are retrieved deterministically.
+- **Contextual AI**: Gemini 2.0 Flash is used for language translation and natural language understanding, but its responses are programmatically grounded in the facts injected from the Authoritative Service.
 
-### 2. Multi-Modal Identity Verification
-The platform treats the Voter ID card (EPIC) as the primary data key. By combining **OCR (Vision AI)** with contextual logic, we facilitate the discovery of a voter's polling station and election phase. The system parses document structure to extract relevant civic identifiers for localized guidance.
+### 2. Multi-Modal Verification (OCR + Logic)
+The platform uses **Gemini Vision AI (Native JSON Mode)** to extract structured data from Voter IDs. This data is then cross-referenced against the Authoritative Service to resolve constituency-specific polling stations and phases, reducing the risk of model hallucination.
 
-### 3. Source-of-Truth Architecture
-Unlike standard LLMs, the VoterPath Expert is domain-locked and backed by a **Dedicated ECI Data Service**. This service serves as the single source of truth for all election dates, qualifying rules, and procedural guidelines, ensuring that AI responses are grounded in verifiable civic facts rather than probabilistic guesses.
+### 3. Accessibility & Native Script Mandate
+Recognizing the diverse linguistic landscape, VoterPath enforces a **Native Script Mandate**. The AI is programmatically constrained to respond ONLY in the native script of the selected language (e.g., தமிழ், हिन्दी), ensuring authenticity and trust.
 
 ---
 
-## 🚀 How the Solution Works
+## 🚀 Key Features
 
-### A. The AI Document Pipeline
-- **Scanner**: A multi-stage Vision pipeline extracts PII and Polling Station data from uploaded EPIC cards or e-EPIC PDFs.
-- **Logic Engine**: The backend maps the extracted constituency to an authoritative election schedule (2026 Assembly dates) provided by the `eciService`.
-- **Privacy Hygiene**: PII is processed in-memory for extraction only and is never persisted. Raw model outputs are stripped to protect privacy.
+### A. The Document Extraction Pipeline
+- **Vision Engine**: Uses Gemini 2.0 Flash with `responseMimeType: application/json` for reliable, regex-free extraction.
+- **Enrichment**: Extracted data is automatically enriched with election schedules and booth locations sourced from the `eciService`.
+- **Privacy**: Processing occurs in-memory; PII is never persisted, and raw model logs are sanitized.
 
-### B. Intelligent Booth Finder
-- **Geographic Mapping**: Uses embedded maps and distance-aware logic to guide voters to their specific constituency booths.
-- **Official Procedures**: Provides direct links and step-by-step guidance for voter registration (Form 6) and corrections (Form 8).
-
-### C. Domain-Locked AI Expert
-- **Strict Constraints**: The assistant is programmatically restricted from off-topic queries. It utilizes the current ECI qualifying date (Jan 1, 2026) and official schedules injected via system instructions to provide accurate eligibility and procedural advice.
+### B. Intelligent Booth & Procedure Finder
+- **Official Resources**: Deep integration of official ECI video guides and embedded maps for geographic discovery.
+- **Step-by-Step Guidance**: Rules-based flows for Form 6 (Registration) and Form 8 (Correction).
 
 ---
 
 ## 🏗️ Technical Architecture
-- **Frontend**: React 19, Tailwind CSS v4, Framer Motion, i18next (15 Localized Scripts).
-- **Backend**: Node.js/Express (CommonJS).
-- **AI Engines**: 
-  - **OCR/Vision**: Google Gemini 2.0 Flash SDK.
-  - **Chat/Guidance**: Google Gemini 2.0 Flash SDK (with history support).
-- **Infrastructure**: Firebase Admin (Auth Verification), Firestore (Booth Data), Multi-stage Sanitization Middleware.
+- **Frontend**: React 19, Tailwind CSS v4, i18next (15 Localized Scripts).
+- **Backend**: Node.js/Express with strict CommonJS modules.
+- **AI Stack**: Google Gemini 2.0 Flash SDK (Vision & Chat).
+- **Security**: Firebase Admin (Token Verification), Helmet (Strict CSP), Zod (Request Validation).
 
 ---
 
-## 📝 Documented Constants & Rules
-1. **Qualifying Date**: Verified as **January 1, 2026** for the 2026 cycle.
-2. **Authoritative Source**: All election facts are sourced via `backend/services/eciService.js` (Simulated ECI API).
-3. **MIME Validation**: Strict allowlisting for JPEG, PNG, and WEBP image uploads.
+## 📝 Documented Rules
+1. **Qualifying Date**: January 1, 2026.
+2. **Authority**: All facts sourced from `backend/data/electionFacts.json` via `eciService`.
+3. **MIME Validation**: Strict allowlisting for JPEG, PNG, and WEBP.
 
 ---
 
-## ⚖️ Compliance & Security
-- **Fail-Closed Auth**: Authentication middleware strictly rejects unauthorized requests in production.
-- **Sanitization**: Robust multi-stage sanitization strips script tags and prompt-injection keywords.
-- **Production CSP**: Hardened Content Security Policy removes `unsafe-inline` concessions.
+## ⚖️ Security & Reliability
+- **"Fail-Closed" Auth**: Middleware strictly rejects unauthorized requests in all production-like paths.
+- **Adversarial Defense**: Prompt neutralization middleware blocks common injection patterns (e.g., "ignore previous instructions").
+- **Error Transparency**: Production-safe error handling prevents stack leakage and provides status-specific feedback.
+- **CORS Management**: Environment-driven origin allowlisting via `ALLOWED_ORIGINS`.
 
 ---
 
-## 🏆 Production-Grade Rigor
+## 🏆 Production Standards
 
 ### 1. Code Quality
-- **Standardized Documentation**: Core functions documented using JSDoc.
-- **Type Safety**: Enabled via `jsconfig.json` with strict type checking in both frontend and backend.
-- **Manifest Hygiene**: Corrected package entry points and dependency versioning.
+- **Manifest Hygiene**: Corrected package entry points and unified SDK surfaces.
+- **Logic Unification**: Eliminated logic fragmentation; controllers now rely exclusively on the `eciService` for civic facts.
 
-### 2. Security
-- **Backend Hardening**: Helmet.js (modern headers), Express-Rate-Limit (DDoS protection), and Zod (schema validation).
-- **Audit Compliance**: Resolved fragile pathing, obsolete headers (xssFilter), and insecure dev-bypass logic.
+### 2. Accessibility (A11y)
+- **Semantic Structure**: Proper use of ARIA landmarks (`main`, `log`, `status`), skip links, and semantic headers.
+- **Keyboard Navigation**: Implemented logical focus order and keyboard support for all interactive zones.
 
 ### 3. Testing
-- **Automated Verification**: Integrated Jest (Backend) and Vitest (Frontend) test suites.
-- **Continuous Integration**: GitHub Actions workflow validates code integrity on every deployment.
-
-### 4. Accessibility (A11y)
-- **High Contrast**: Native support for WCAG-compliant high-contrast themes.
-- **Semantic HTML**: Proper use of ARIA roles (`region`, `article`, `section`), `dl/dt/dd` lists, and skip links.
-
-### 5. Google Services Integration
-- **Gemini SDK**: Native integration with `@google/generative-ai` for both Vision and Text.
-- **Firebase**: Secure token verification via Firebase Admin and Firestore-backed regional data.
-- **YouTube & Maps**: Deep integration for procedural videos and geographic booth discovery.
-
+- **Multi-layered Verification**: Jest (Backend) and Vitest (Frontend) suites covering integration, accessibility, and adversarial scenarios.

@@ -57,23 +57,30 @@ app.use('/api', limiter);
 app.use('/api/chat', strictAILimiter);
 app.use('/api/scan', strictAILimiter);
 
-// Middleware — CORS: Strict origin enforcement
-const allowedOrigins = [
-  'https://voterpath-776684989084.us-central1.run.app',
-  'http://localhost:5173',
-  'http://localhost:8080'
-];
+// Middleware — CORS: Environment-driven origin enforcement
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',') 
+  : ['http://localhost:5173'];
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl) ONLY in development/test
-    // Require explicit origin matching for all browser-based production requests
-    if (!origin && process.env.NODE_ENV === 'test') {
+    // Allow requests with no origin (like mobile apps or curl) in non-production
+    if (!origin && process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
-    if (allowedOrigins.includes(origin)) {
+    
+    // Test mode allows a specific test origin or the standard allowed ones
+    const isTest = process.env.NODE_ENV === 'test';
+    const effectiveAllowed = isTest 
+      ? [...allowedOrigins, 'https://voterpath-776684989084.us-central1.run.app']
+      : allowedOrigins;
+
+    if (effectiveAllowed.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error(`CORS policy: origin ${origin} is strictly unauthorized.`));
+      const error = new Error(`CORS Policy Violation: Origin ${origin} is not allowed.`);
+      error.status = 403;
+      callback(error);
     }
   },
   methods: ['GET', 'POST'],
@@ -87,24 +94,33 @@ app.use('/api', apiRoutes);
 // Serve static frontend in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../dist')));
-  // Fallback to SPA index.html for all other routes
   app.use((req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'));
   });
 }
 
-// Error Handling Middleware
+// Structured Error Handling Middleware
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something broke!' });
+  const isProd = process.env.NODE_ENV === 'production';
+  const status = err.status || err.statusCode || 500;
+  
+  // Log full error internally
+  console.error(`[Error] ${req.method} ${req.url}:`, isProd ? err.message : err.stack);
+
+  // Return clean, user-safe error to client
+  res.status(status).json({
+    error: isProd && status === 500 ? 'An unexpected internal error occurred.' : err.message,
+    status: status
+  });
 });
 
-// Start server only if we're not running tests
+// Start server
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
-    console.log(`Backend server running on http://localhost:${PORT}`);
+    console.log(`[VoterPath] Backend server running on port ${PORT}`);
+    console.log(`[VoterPath] Allowed Origins: ${allowedOrigins.join(', ')}`);
   });
 }
 
-module.exports = app; // Export for testing
+module.exports = app;

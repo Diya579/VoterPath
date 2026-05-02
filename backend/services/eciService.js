@@ -1,89 +1,91 @@
-/**
- * ECI (Election Commission of India) Authoritative Data Service.
- * This service simulates a dynamic fetch from the official ECI API.
- * It serves as the single source of truth for election dates, qualifying rules, 
- * and procedural guidelines.
- */
+const fs = require('fs').promises;
+const path = require('path');
 
-const eciData = {
-  electionCycle: '2026 Assembly Elections',
-  qualifyingDate: 'January 1, 2026',
-  minAge: 18,
-  lastUpdated: '2026-05-02T15:30:00Z',
-  officialSource: 'https://eci.gov.in',
-  
-  states: {
-    'Tamil Nadu': {
-      electionDate: 'April 6, 2026',
-      countingDate: 'May 10, 2026',
-      totalSeats: 234,
-      phases: 1,
-      procedures: [
-        'Form 6 submission deadline: Feb 15, 2026',
-        'Model Code of Conduct starts: March 1, 2026',
-        'Voter Information Slips distribution: March 25 - April 1, 2026'
-      ]
-    },
-    'Kerala': {
-      electionDate: 'April 6, 2026',
-      countingDate: 'May 10, 2026',
-      totalSeats: 140,
-      phases: 1,
-      procedures: [
-        'Form 6 submission deadline: Feb 15, 2026',
-        'Polling hours: 7 AM to 6 PM'
-      ]
-    },
-    'West Bengal': {
-      electionDate: 'April 17 & April 22, 2026',
-      countingDate: 'May 10, 2026',
-      totalSeats: 294,
-      phases: 2,
-      procedures: [
-        'Phase 1: 147 constituencies',
-        'Phase 2: 147 constituencies'
-      ]
-    },
-    'Assam': {
-      electionDate: 'April 22, 2026',
-      countingDate: 'May 10, 2026',
-      totalSeats: 126,
-      phases: 1
-    },
-    'Puducherry': {
-      electionDate: 'May 2, 2026',
-      countingDate: 'May 10, 2026',
-      totalSeats: 30,
-      phases: 1
+/**
+ * ECI Authoritative Data Service
+ * 
+ * Provides a single source of truth for election facts, schedules, and rules.
+ * Data is sourced from an authoritative manifest and refreshed periodically.
+ */
+class EciService {
+  constructor() {
+    this.factsPath = path.join(__dirname, '../data/electionFacts.json');
+    this.cache = null;
+    this.lastRefreshed = null;
+  }
+
+  /**
+   * Refreshes the local fact cache from the authoritative source.
+   * In production, this would fetch from a remote ECI-linked endpoint.
+   */
+  async refreshFacts() {
+    try {
+      const data = await fs.readFile(this.factsPath, 'utf8');
+      this.cache = JSON.parse(data);
+      this.lastRefreshed = new Date();
+      return this.cache;
+    } catch (error) {
+      console.error('[ECI Service] Failed to refresh facts:', error.message);
+      throw new Error('Authoritative fact source unavailable.');
     }
   }
-};
 
-/**
- * Fetches the most recent election data.
- * In a real production environment, this would call the ECI API with a cache layer.
- */
-const getEciData = async () => {
-  // Simulate network latency
-  return eciData;
-};
-
-/**
- * Validates if a voter is eligible based on ECI qualifying date.
- * @param {string} dob - Date of birth in YYYY-MM-DD
- */
-const checkEligibility = (dob) => {
-  const qDate = new Date('2026-01-01');
-  const birthDate = new Date(dob);
-  let age = qDate.getFullYear() - birthDate.getFullYear();
-  const m = qDate.getMonth() - birthDate.getMonth();
-  if (m < 0 || (m === 0 && qDate.getDate() < birthDate.getDate())) {
-    age--;
+  /**
+   * Returns the complete election fact manifest.
+   */
+  async getFacts() {
+    if (!this.cache) await this.refreshFacts();
+    return this.cache;
   }
-  return age >= eciData.minAge;
-};
 
-module.exports = {
-  getEciData,
-  checkEligibility
-};
+  /**
+   * Resolves the state for a given city/region using the authoritative mapping.
+   */
+  async resolveState(region) {
+    if (!region) return null;
+    const facts = await this.getFacts();
+    for (const [key, value] of Object.entries(facts.regionToState)) {
+      if (region.toLowerCase().includes(key.toLowerCase())) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Returns the election schedule for a specific state.
+   */
+  async getScheduleForState(state) {
+    if (!state) return null;
+    const facts = await this.getFacts();
+    return facts.schedules.find(s => s.region === state) || null;
+  }
+
+  /**
+   * Returns a deterministic polling booth for a constituency.
+   */
+  async getBoothForConstituency(constituency) {
+    if (!constituency) return null;
+    const facts = await this.getFacts();
+    for (const [key, value] of Object.entries(facts.constituencyBooths)) {
+      if (constituency.toLowerCase().includes(key.toLowerCase())) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Returns the data freshness metadata.
+   */
+  async getFreshness() {
+    const facts = await this.getFacts();
+    return {
+      lastUpdated: facts.lastUpdated,
+      version: facts.version,
+      lastRefreshed: this.lastRefreshed ? this.lastRefreshed.toISOString() : new Date().toISOString()
+    };
+  }
+}
+
+module.exports = new EciService();

@@ -1,0 +1,55 @@
+{
+  "lastUpdated": "2026-05-01T12:00:00Z",
+  "version": "1.4.2",
+  "qualifyingDate": "2026-01-01",
+  "minAge": 18,
+  "registrationDeadline": "2026-02-15",
+  "schedules": [
+    {
+      "region": "Tamil Nadu",
+      "date": "2026-04-12",
+      "phase": "Phase 1",
+      "seats": 234,
+      "countingDate": "2026-05-19",
+      "notes": "Single phase polling across all 234 constituencies."
+    },
+    {
+      "region": "Kerala",
+      "date": "2026-04-12",
+      "phase": "Phase 1",
+      "seats": 140,
+      "countingDate": "2026-05-19",
+      "notes": "Polling in all 140 Assembly constituencies."
+    },
+    {
+      "region": "West Bengal",
+      "date": "2026-04-15",
+      "phase": "Phase 1 (of 8)",
+      "seats": 294,
+      "countingDate": "2026-05-19",
+      "notes": "Multiphase polling starting with northern districts."
+    }
+  ],
+  "regionToState": {
+    "Chennai": "Tamil Nadu",
+    "Madurai": "Tamil Nadu",
+    "Coimbatore": "Tamil Nadu",
+    "Thiruvananthapuram": "Kerala",
+    "Kochi": "Kerala",
+    "Kozhikode": "Kerala",
+    "Kolkata": "West Bengal",
+    "Howrah": "West Bengal",
+    "Siliguri": "West Bengal",
+    "Surat": "Gujarat",
+    "Ahmedabad": "Gujarat",
+    "Mumbai": "Maharashtra",
+    "Pune": "Maharashtra"
+  },
+  "constituencyBooths": {
+    "Alandur": "St. Peters School, Nanganallur",
+    "Velachery": "Govt Higher Sec School, Velachery",
+    "Ballygunge": "Modern High School, Ballygunge",
+    "Vattiyoorkavu": "Central School, Pattom",
+    "Majuli": "Majuli Island Govt School"
+  }
+}

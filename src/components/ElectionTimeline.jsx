@@ -103,7 +103,44 @@ export default function ElectionTimeline() {
         </ol>
       )}
 
-      <div className="mt-12 brutal-card bg-primary p-8 rotate-1">
+      {/* Official Video Resources (Deep Integration) */}
+      <div className="mt-16 brutal-card bg-secondary text-white p-8">
+        <h3 className="text-3xl font-black uppercase mb-6 flex items-center gap-3">
+          🎥 {t('officialGuides', 'Official ECI Video Guides')}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <div className="aspect-video brutal-border shadow-brutal-sm overflow-hidden bg-black">
+              <iframe 
+                width="100%" 
+                height="100%" 
+                src="https://www.youtube.com/embed/S_8qM888zYo" 
+                title="Voter Guide" 
+                frameBorder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+              ></iframe>
+            </div>
+            <p className="font-bold uppercase italic text-sm">How to verify your name in the Voter List</p>
+          </div>
+          <div className="space-y-4">
+            <div className="aspect-video brutal-border shadow-brutal-sm overflow-hidden bg-black">
+              <iframe 
+                width="100%" 
+                height="100%" 
+                src="https://www.youtube.com/embed/6_HlX1nFf5Q" 
+                title="EVM Guide" 
+                frameBorder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+              ></iframe>
+            </div>
+            <p className="font-bold uppercase italic text-sm">Step-by-step guide to using the EVM/VVPAT</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-12 brutal-card bg-primary p-8 rotate-1 text-black">
         <h3 className="text-3xl font-black uppercase mb-4">{t('didYouKnow')}</h3>
         <p className="text-xl font-bold bg-white p-4 brutal-border">
           {t('timelineFact')}
