@@ -67,7 +67,7 @@ app.use(express.json({ limit: '1mb' }));
 
 // CORS: Environment-driven origin enforcement — Applied only to API
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',') 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) 
   : [
       'http://localhost:5173',
       'https://voterpath-776684989084.us-central1.run.app'
@@ -80,16 +80,13 @@ const corsMiddleware = cors({
       return callback(null, true);
     }
     
-    // Test mode allows a specific test origin
-    const isTest = process.env.NODE_ENV === 'test';
-    const effectiveAllowed = isTest 
-      ? [...allowedOrigins, 'https://voterpath-776684989084.us-central1.run.app']
-      : allowedOrigins;
+    // Check if the origin starts with any of our allowed patterns (handles trailing slashes)
+    const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed));
 
-    if (effectiveAllowed.includes(origin)) {
+    if (isAllowed || process.env.NODE_ENV === 'test') {
       callback(null, true);
     } else {
-      console.error(`[CORS] Rejected Origin: ${origin}. Allowed: ${effectiveAllowed.join(', ')}`);
+      console.error(`[CORS] Rejected Origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
       const error = new Error(`CORS Policy Violation: Origin ${origin} is not allowed.`);
       error.status = 403;
       callback(error);
