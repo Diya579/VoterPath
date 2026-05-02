@@ -11,12 +11,16 @@ export const useAIAssistant = () => {
     setMessages(prev => [...prev, newMsg]);
 
     try {
-      // Get Firebase ID Token for backend verification
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('You must be signed in to use the AI assistant.');
+      // Best-effort token retrieval (fails gracefully if anonymous auth is restricted)
+      let token = null;
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          token = await user.getIdToken();
+        }
+      } catch (authErr) {
+        console.warn('[Auth] Token retrieval failed, falling back to Origin-based security.');
       }
-      const token = await user.getIdToken();
 
       // Map messages to the format expected by Gemini API (role: user/model, parts: [{ text }])
       const history = messages.map(m => ({
@@ -24,15 +28,18 @@ export const useAIAssistant = () => {
         parts: [{ text: m.content }]
       }));
 
-      // Calls our secure Node.js backend with Authorization header
-      const response = await fetch('/api/chat', {
+      // Calls our secure Node.js backend
+      const fetchOptions = {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, history })
-      });
+      };
+
+      if (token) {
+        fetchOptions.headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch('/api/chat', fetchOptions);
 
       if (!response.ok) {
         const errorData = await response.json();

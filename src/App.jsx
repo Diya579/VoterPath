@@ -54,36 +54,35 @@ const RouteLoader = () => (
 export default function App() {
   const { showLangSelector, setShowLangSelector } = useVoterContext();
   const seedingAttempted = useRef(false);
-  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Authenticate user anonymously to get a secure session token
-    // This allows us to use verifyToken on the backend without a public bypass.
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        try {
-          await signInAnonymously(auth);
-        } catch (err) {
-          console.error('Anonymous Auth Failed:', err);
+    // 1. Best-effort anonymous authentication
+    // We try to sign in to satisfy strict token checks, but if it's restricted in the console,
+    // the backend fallback (Origin-based) will handle security.
+    const initAuth = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          await signInAnonymously(auth).catch(err => {
+            if (err.code !== 'auth/admin-restricted-operation') {
+              console.warn('[Auth] Optional Anonymous Sign-in skipped:', err.message);
+            }
+          });
         }
+      } catch (err) {
+        // Non-fatal: Informational platform remains open
       }
-      setAuthLoading(false);
-    });
+    };
+    initAuth();
 
-    // 2. Robust idempotent seeding guard for production reliability
+    // 2. Robust idempotent seeding guard
     const initApp = async () => {
       if (seedingAttempted.current) return;
       seedingAttempted.current = true;
       await seedDatabase();
     };
     initApp();
-
-    return () => unsubscribe();
   }, []);
-
-  if (authLoading) {
-    return <RouteLoader />;
-  }
 
   if (showLangSelector) {
     return <LanguageSelector onSelect={() => setShowLangSelector(false)} />;

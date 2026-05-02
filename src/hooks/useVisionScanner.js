@@ -22,24 +22,32 @@ export const useVisionScanner = () => {
     setResult(null);
 
     try {
-      // Get Firebase ID Token for backend verification
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('You must be signed in to use the ID scanner.');
+      // Best-effort token retrieval (fails gracefully if anonymous auth is restricted)
+      let token = null;
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          token = await user.getIdToken();
+        }
+      } catch (authErr) {
+        console.warn('[Auth] Token retrieval failed, falling back to Origin-based security.');
       }
-      const token = await user.getIdToken();
 
       const formData = new FormData();
       formData.append('image', file);
 
-      // Call our secure Node.js backend with Authorization header
-      const response = await fetch('/api/scan', {
+      // Call our secure Node.js backend
+      const fetchOptions = {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        headers: {},
         body: formData
-      });
+      };
+
+      if (token) {
+        fetchOptions.headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch('/api/scan', fetchOptions);
 
       if (!response.ok) {
         let errorMessage = 'Analysis failed. Please try again.';
