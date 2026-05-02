@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import Sidebar from './components/Sidebar';
 import LanguageSelector from './components/LanguageSelector';
 import { seedDatabase } from './utils/seeder';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { useVoterContext } from './contexts/VoterContext';
+import { auth } from './firebase/config';
 
 // Code splitting: dynamically import heavy route components
 const IDScanner = lazy(() => import('./components/IDScanner'));
@@ -52,16 +54,36 @@ const RouteLoader = () => (
 export default function App() {
   const { showLangSelector, setShowLangSelector } = useVoterContext();
   const seedingAttempted = useRef(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    // Robust idempotent seeding guard for production reliability
+    // 1. Authenticate user anonymously to get a secure session token
+    // This allows us to use verifyToken on the backend without a public bypass.
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        try {
+          await signInAnonymously(auth);
+        } catch (err) {
+          console.error('Anonymous Auth Failed:', err);
+        }
+      }
+      setAuthLoading(false);
+    });
+
+    // 2. Robust idempotent seeding guard for production reliability
     const initApp = async () => {
       if (seedingAttempted.current) return;
       seedingAttempted.current = true;
       await seedDatabase();
     };
     initApp();
+
+    return () => unsubscribe();
   }, []);
+
+  if (authLoading) {
+    return <RouteLoader />;
+  }
 
   if (showLangSelector) {
     return <LanguageSelector onSelect={() => setShowLangSelector(false)} />;
