@@ -27,7 +27,15 @@ export const useVisionScanner = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        let errorMessage = 'Analysis failed. Please try again.';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // Fallback if response is not JSON
+          errorMessage = `HTTP Error ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

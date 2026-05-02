@@ -158,6 +158,12 @@ const scanVoterID = async (req, res, next) => {
       ]);
 
       const response = await result.response;
+      
+      // Handle Safety Filter Blocks
+      if (response.promptFeedback?.blockReason) {
+        throw new Error(`The image was blocked by the safety filter: ${response.promptFeedback.blockReason}`);
+      }
+
       const rawText = response.text();
       
       let rawExtracted;
@@ -192,7 +198,7 @@ const scanVoterID = async (req, res, next) => {
 
       res.json({ result: enrichedResult });
     } catch (apiError) {
-      console.error("Gemini Vision API Error:", apiError.stack || apiError.message);
+      console.error("Gemini Vision API Critical Error:", apiError);
       const status = apiError.message.includes('GEMINI_API_KEY') ? 500 : 503;
       res.status(status).json({ 
         error: apiError.message.includes('GEMINI_API_KEY') 
@@ -201,6 +207,7 @@ const scanVoterID = async (req, res, next) => {
       });
     }
   } catch (error) {
+    console.error("Unhandle OCR Controller Error:", error);
     next(error);
   }
 };

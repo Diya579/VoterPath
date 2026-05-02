@@ -24,8 +24,8 @@ const verifyToken = async (req, res, next) => {
     if (process.env.NODE_ENV === 'test') {
       return next();
     }
-    console.error('[Auth] System configuration error: Firebase Admin not initialized.');
-    return res.status(500).json({ error: 'Internal Security Configuration Error: Authentication Unavailable.' });
+    console.error('[Auth] System configuration error: FIREBASE_SERVICE_ACCOUNT not set in environment.');
+    return res.status(500).json({ error: 'System Authentication Configuration Error. Please set FIREBASE_SERVICE_ACCOUNT.' });
   }
 
   const authHeader = req.headers.authorization;
