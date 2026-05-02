@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { auth } from '../firebase/config';
 
 export const useVisionScanner = () => {
   const [loading, setLoading] = useState(false);
@@ -21,12 +22,22 @@ export const useVisionScanner = () => {
     setResult(null);
 
     try {
+      // Get Firebase ID Token for backend verification
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('You must be signed in to use the ID scanner.');
+      }
+      const token = await user.getIdToken();
+
       const formData = new FormData();
       formData.append('image', file);
 
-      // Call our secure Node.js backend instead of exposing the API key
+      // Call our secure Node.js backend with Authorization header
       const response = await fetch('/api/scan', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData
       });
 
