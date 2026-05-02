@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import Sidebar from '../Sidebar';
+import { VoterProvider } from '../../contexts/VoterContext';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: key => key })
@@ -10,9 +11,11 @@ vi.mock('react-i18next', () => ({
 describe('Sidebar Component', () => {
   it('renders navigation links', () => {
     render(
-      <BrowserRouter>
-        <Sidebar onLanguageChange={() => {}} />
-      </BrowserRouter>
+      <VoterProvider>
+        <BrowserRouter>
+          <Sidebar />
+        </BrowserRouter>
+      </VoterProvider>
     );
     
     expect(screen.getByText('home')).toBeInTheDocument();

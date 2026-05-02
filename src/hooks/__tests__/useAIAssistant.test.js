@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useGeminiChat } from '../useGeminiChat';
+import { useAIAssistant } from '../useAIAssistant';
 
-describe('useGeminiChat', () => {
+describe('useAIAssistant', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   it('starts with empty messages and not loading', () => {
-    const { result } = renderHook(() => useGeminiChat());
+    const { result } = renderHook(() => useAIAssistant());
     expect(result.current.messages).toEqual([]);
     expect(result.current.loading).toBe(false);
   });
@@ -19,7 +19,7 @@ describe('useGeminiChat', () => {
       json: async () => ({ text: 'You must be 18 to vote.' })
     });
 
-    const { result } = renderHook(() => useGeminiChat());
+    const { result } = renderHook(() => useAIAssistant());
     await act(async () => {
       await result.current.sendMessage('Can I vote at 17?');
     });
@@ -36,7 +36,7 @@ describe('useGeminiChat', () => {
   it('handles network failure with correct error message shape', async () => {
     global.fetch = vi.fn().mockRejectedValueOnce(new Error('Network failure'));
 
-    const { result } = renderHook(() => useGeminiChat());
+    const { result } = renderHook(() => useAIAssistant());
     await act(async () => {
       await result.current.sendMessage('Will I be able to vote?');
     });
@@ -56,7 +56,7 @@ describe('useGeminiChat', () => {
       status: 500
     });
 
-    const { result } = renderHook(() => useGeminiChat());
+    const { result } = renderHook(() => useAIAssistant());
     await act(async () => {
       await result.current.sendMessage('test prompt');
     });

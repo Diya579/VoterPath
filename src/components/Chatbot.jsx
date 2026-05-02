@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useGeminiChat } from '../hooks/useGeminiChat';
+import { useAIAssistant } from '../hooks/useAIAssistant';
 import { Send, User, Bot, Loader2 } from 'lucide-react';
 import { langNames } from '../utils/constants';
 
@@ -10,7 +10,7 @@ import { langNames } from '../utils/constants';
  */
 export default function Chatbot() {
   const { t, i18n } = useTranslation();
-  const { messages, sendMessage, loading } = useGeminiChat();
+  const { messages, sendMessage, loading } = useAIAssistant();
   const [input, setInput] = useState('');
   const currentLang = i18n.language || 'en';
   const messagesEndRef = useRef(null);

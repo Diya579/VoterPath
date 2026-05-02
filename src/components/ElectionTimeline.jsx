@@ -4,55 +4,11 @@ import { collection, getDocs, query } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { Calendar as CalendarIcon, Users, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { fallbackSchedules } from '../utils/fallbackData';
+import { useTimelineData } from '../utils/useTimelineData';
 
 export default function ElectionTimeline() {
   const { t } = useTranslation();
-  const [schedules, setSchedules] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchSchedules = async () => {
-      // Skip cache if empty
-      const cached = localStorage.getItem('schedules');
-      if (cached && JSON.parse(cached).length > 0) {
-        setSchedules(JSON.parse(cached));
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const q = query(collection(db, 'schedules'));
-        const querySnapshot = await getDocs(q);
-        let data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // Fallback if Firestore is empty/disabled
-        if (data.length === 0) {
-          data = fallbackSchedules;
-        }
-
-        // Sort: polls before counting, then chronologically by actual date
-        data.sort((a, b) => {
-          if (a.type !== b.type) return a.type === 'poll' ? -1 : 1;
-          return new Date(a.date) - new Date(b.date);
-        });
-        setSchedules(data);
-        localStorage.setItem('schedules', JSON.stringify(data));
-      } catch (err) {
-        console.error("Error fetching schedules", err);
-        // Seamless fallback on error
-        const data = fallbackSchedules;
-        data.sort((a, b) => {
-          if (a.type === b.type) return a.date.localeCompare(b.date);
-          return a.type === 'poll' ? -1 : 1;
-        });
-        setSchedules(data);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSchedules();
-  }, []);
+  const { schedules, loading } = useTimelineData();
 
   return (
     <div className="max-w-4xl mx-auto">

@@ -13,6 +13,13 @@ vi.mock('../../firebase/config', () => ({
   storage: {}
 }));
 
+vi.mock('firebase/firestore', () => ({
+  collection: vi.fn(),
+  query: vi.fn(),
+  where: vi.fn(),
+  getDocs: vi.fn().mockResolvedValue({ docs: [] })
+}));
+
 vi.mock('firebase/analytics', () => ({
   getAnalytics: vi.fn(),
   logEvent: vi.fn()

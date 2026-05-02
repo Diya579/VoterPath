@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export const useGeminiChat = () => {
+export const useAIAssistant = () => {
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState([]);
 

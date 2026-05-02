@@ -1,5 +1,30 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+
+const CandidateRow = React.memo(({ candidate, votedFor, onVote }) => (
+  <div className="flex items-center justify-between bg-gray-100 p-6 brutal-border shadow-brutal-sm">
+    <div className="flex-1">
+      <h3 className="text-3xl font-black uppercase">{candidate.name}</h3>
+      <p className="text-xl font-bold text-gray-600 bg-white inline-block px-2 brutal-border mt-2">{candidate.party}</p>
+    </div>
+    
+    <div className="flex items-center space-x-8">
+      {/* Red LED Indicator - Flat Brutalist Style */}
+      <div 
+        className={`w-8 h-8 rounded-full border-4 border-black transition-colors ${votedFor === candidate.id ? 'bg-secondary' : 'bg-gray-400'}`}
+      />
+      
+      {/* Blue Voting Button */}
+      <button
+        onClick={() => onVote(candidate.id)}
+        disabled={votedFor !== null}
+        className={`w-20 h-16 brutal-border transition-all ${votedFor !== null ? 'opacity-50 cursor-not-allowed bg-blue-300' : 'bg-blue-600 hover:bg-blue-500 shadow-brutal-sm active:translate-y-1 active:shadow-none'}`}
+        aria-label={`Vote for ${candidate.name}`}
+      />
+    </div>
+  </div>
+));
+CandidateRow.displayName = 'CandidateRow';
 
 export default function EVMSimulator() {
   const { t } = useTranslation();
@@ -7,14 +32,14 @@ export default function EVMSimulator() {
   const audioRef = useRef(null);
 
   const candidates = [
-    { id: 1, name: 'Rajesh Kumar', party: 'Bharatiya Janata Party (BJP)' },
-    { id: 2, name: 'Priya Patel', party: 'Indian National Congress (INC)' },
-    { id: 3, name: 'Arvind Sharma', party: 'Aam Aadmi Party (AAP)' },
-    { id: 4, name: 'S. K. Stalin', party: 'Dravida Munnetra Kazhagam (DMK)' },
-    { id: 5, name: 'NOTA', party: 'None of the Above' }
+    { id: 1, name: t('candidate1Name', 'Rajesh Kumar'), party: t('candidate1Party', 'Bharatiya Janata Party (BJP)') },
+    { id: 2, name: t('candidate2Name', 'Priya Patel'), party: t('candidate2Party', 'Indian National Congress (INC)') },
+    { id: 3, name: t('candidate3Name', 'Arvind Sharma'), party: t('candidate3Party', 'Aam Aadmi Party (AAP)') },
+    { id: 4, name: t('candidate4Name', 'S. K. Stalin'), party: t('candidate4Party', 'Dravida Munnetra Kazhagam (DMK)') },
+    { id: 5, name: t('candidate5Name', 'NOTA'), party: t('candidate5Party', 'None of the Above') }
   ];
 
-  const handleVote = (id) => {
+  const handleVote = useCallback((id) => {
     if (votedFor) return;
     setVotedFor(id);
     
@@ -34,9 +59,7 @@ export default function EVMSimulator() {
       oscillator.start();
       oscillator.stop(audioCtx.currentTime + 2);
     }
-
-    // Intentionally removed setTimeout to simulate the EVM locking after one vote
-  };
+  }, [votedFor]);
 
   return (
     <div className="max-w-4xl">
@@ -49,27 +72,12 @@ export default function EVMSimulator() {
         
         <div className="space-y-6 mt-12 bg-white p-6 brutal-border">
           {candidates.map(candidate => (
-            <div key={candidate.id} className="flex items-center justify-between bg-gray-100 p-6 brutal-border shadow-brutal-sm">
-              <div className="flex-1">
-                <h3 className="text-3xl font-black uppercase">{candidate.name}</h3>
-                <p className="text-xl font-bold text-gray-600 bg-white inline-block px-2 brutal-border mt-2">{candidate.party}</p>
-              </div>
-              
-              <div className="flex items-center space-x-8">
-                {/* Red LED Indicator - Flat Brutalist Style */}
-                <div 
-                  className={`w-8 h-8 rounded-full border-4 border-black transition-colors ${votedFor === candidate.id ? 'bg-secondary' : 'bg-gray-400'}`}
-                />
-                
-                {/* Blue Voting Button */}
-                <button
-                  onClick={() => handleVote(candidate.id)}
-                  disabled={votedFor !== null}
-                  className={`w-20 h-16 brutal-border transition-all ${votedFor !== null ? 'opacity-50 cursor-not-allowed bg-blue-300' : 'bg-blue-600 hover:bg-blue-500 shadow-brutal-sm active:translate-y-1 active:shadow-none'}`}
-                  aria-label={`Vote for ${candidate.name}`}
-                />
-              </div>
-            </div>
+            <CandidateRow 
+              key={candidate.id} 
+              candidate={candidate} 
+              votedFor={votedFor} 
+              onVote={handleVote} 
+            />
           ))}
         </div>
       </div>

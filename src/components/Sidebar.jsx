@@ -4,15 +4,16 @@ import { Link, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useEffect } from 'react';
 
+import { useVoterContext } from '../contexts/VoterContext';
+
 /**
  * Sidebar navigation component
- * @param {Object} props - Component props
- * @param {Function} props.onLanguageChange - Callback triggered to open the language selection modal
  * @returns {JSX.Element} The rendered Sidebar component
  */
-export default function Sidebar({ onLanguageChange }) {
+export default function Sidebar() {
   const { t } = useTranslation();
   const location = useLocation();
+  const { setShowLangSelector } = useVoterContext();
 
   // Persist high contrast preference across sessions
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function Sidebar({ onLanguageChange }) {
       </div>
 
       <button 
-        onClick={onLanguageChange}
+        onClick={() => setShowLangSelector(true)}
         className="mt-8 flex items-center justify-center bg-white hover:bg-gray-200 text-black w-full brutal-btn"
         aria-label="Change Application Language"
       >
@@ -103,7 +104,3 @@ export default function Sidebar({ onLanguageChange }) {
     </div>
   );
 }
-
-Sidebar.propTypes = {
-  onLanguageChange: PropTypes.func.isRequired,
-};

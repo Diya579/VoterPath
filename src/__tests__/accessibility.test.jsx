@@ -6,8 +6,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (str) => str, i18n: { language: 'en' } })
 }));
 
-vi.mock('../hooks/useGeminiChat', () => ({
-  useGeminiChat: () => ({
+vi.mock('../hooks/useAIAssistant', () => ({
+  useAIAssistant: () => ({
     messages: [
       { role: 'user', content: 'Can I vote?' },
       { role: 'assistant', content: 'Yes, if you are 18+.' }

@@ -115,10 +115,10 @@ export default function IDScanner() {
           <input
             ref={fileInputRef}
             type="file"
+            accept="image/jpeg, image/png, image/webp, application/pdf"
             className="hidden"
-            accept="image/*,application/pdf"
             onChange={handleFile}
-            aria-label="Upload voter ID file"
+            aria-label="Upload Voter ID Card"
           />
         </label>
       </div>

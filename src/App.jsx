@@ -5,6 +5,7 @@ import LanguageSelector from './components/LanguageSelector';
 import { seedDatabase } from './utils/seeder';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
+import { useVoterContext } from './contexts/VoterContext';
 
 // Code splitting: dynamically import heavy route components
 const IDScanner = lazy(() => import('./components/IDScanner'));
@@ -47,7 +48,7 @@ const RouteLoader = () => (
 );
 
 export default function App() {
-  const [showLangSelector, setShowLangSelector] = useState(() => !localStorage.getItem('voterLanguage'));
+  const { showLangSelector, setShowLangSelector } = useVoterContext();
   const hasSeeded = useRef(false);
 
   useEffect(() => {
@@ -65,7 +66,7 @@ export default function App() {
   return (
     <Router>
       <div className="flex min-h-screen bg-background">
-        <Sidebar onLanguageChange={() => setShowLangSelector(true)} />
+        <Sidebar />
         <main id="main-content" className="flex-1 ml-72 p-12" role="main">
           <div className="max-w-6xl mx-auto">
             <Suspense fallback={<RouteLoader />}>
