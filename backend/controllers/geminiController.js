@@ -29,6 +29,7 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 /**
  * Robustly sanitizes user input to prevent common prompt injection patterns.
  * Preserves core intent while neutralizing structural attack vectors.
+ * @param {string} input 
  */
 function sanitizePrompt(input) {
   if (!input) return '';
@@ -53,6 +54,9 @@ function sanitizePrompt(input) {
 /**
  * Controller for AI-powered conversational guidance.
  * Grounded in authoritative ECI facts.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 const chatWithGemini = async (req, res, next) => {
   try {
@@ -93,10 +97,11 @@ const chatWithGemini = async (req, res, next) => {
       const response = await result.response;
       res.json({ text: response.text() });
     } catch (apiError) {
-      console.error("Gemini Chat API Error:", apiError.stack || apiError.message);
-      const status = apiError.message.includes('GEMINI_API_KEY') ? 500 : 503;
+      const err = apiError instanceof Error ? apiError : new Error(String(apiError));
+      console.error("Gemini Chat API Error:", err.stack || err.message);
+      const status = err.message.includes('GEMINI_API_KEY') ? 500 : 503;
       res.status(status).json({ 
-        error: apiError.message.includes('GEMINI_API_KEY') 
+        error: err.message.includes('GEMINI_API_KEY') 
           ? 'Server configuration error.' 
           : 'Election information service is temporarily unavailable.' 
       });
@@ -109,6 +114,9 @@ const chatWithGemini = async (req, res, next) => {
 /**
  * Controller for Voter ID OCR and data enrichment.
  * Uses Gemini JSON mode for reliable structural extraction.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 const scanVoterID = async (req, res, next) => {
   try {
@@ -183,7 +191,7 @@ const scanVoterID = async (req, res, next) => {
 
       const enrichedResult = {
         epic: extracted.epic || null,
-        epicValid: validateVoterIdFormat(extracted.epic),
+        epicValid: validateVoterIdFormat(extracted.epic || ''),
         name: extracted.name || null,
         gender: extracted.gender || null,
         address: extracted.address || null,
@@ -198,12 +206,13 @@ const scanVoterID = async (req, res, next) => {
 
       res.json({ result: enrichedResult });
     } catch (apiError) {
-      console.error("Gemini Vision API Critical Error:", apiError);
-      const status = apiError.message.includes('GEMINI_API_KEY') ? 500 : 503;
+      const err = apiError instanceof Error ? apiError : new Error(String(apiError));
+      console.error("Gemini Vision API Critical Error:", err);
+      const status = err.message.includes('GEMINI_API_KEY') ? 500 : 503;
       res.status(status).json({ 
-        error: apiError.message.includes('GEMINI_API_KEY') 
+        error: err.message.includes('GEMINI_API_KEY') 
           ? 'Server configuration error.' 
-          : (apiError.message || 'OCR processing service is unavailable.')
+          : (err.message || 'OCR processing service is unavailable.')
       });
     }
   } catch (error) {

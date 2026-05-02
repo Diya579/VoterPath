@@ -10,12 +10,19 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     });
     firebaseInitialized = true;
   } catch (e) {
-    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT:', e.message);
+    const err = e instanceof Error ? e : new Error(String(e));
+    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT:', err.message);
   }
 } else {
   console.warn('[Auth] FIREBASE_SERVICE_ACCOUNT not set. Running in development bypass mode.');
 }
 
+/**
+ * Token verification middleware.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 const verifyToken = async (req, res, next) => {
   // Strict Fail-Closed Policy:
   // If Firebase Admin is not initialized, we only allow access in TEST environment.
@@ -39,7 +46,8 @@ const verifyToken = async (req, res, next) => {
     req.user = decodedToken;
     next();
   } catch (error) {
-    console.error('[Auth] Token verification failed:', error.code);
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error('[Auth] Token verification failed:', err.message);
     return res.status(401).json({ error: 'Unauthorized: Invalid or expired token.' });
   }
 };

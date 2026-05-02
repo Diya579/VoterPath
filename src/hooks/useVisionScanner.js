@@ -5,6 +5,10 @@ export const useVisionScanner = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
+  /**
+   * Scans a voter ID image.
+   * @param {File} file 
+   */
   const scanImage = async (file) => {
     // Client-side validation: Max 2MB
     if (file.size > 2 * 1024 * 1024) {
@@ -42,7 +46,8 @@ export const useVisionScanner = () => {
       setResult(data.result);
       
     } catch (err) {
-      setError(err.message || 'Error processing image');
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj.message || 'Error processing image');
     } finally {
       setLoading(false);
     }
