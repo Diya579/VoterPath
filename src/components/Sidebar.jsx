@@ -88,7 +88,6 @@ export default function Sidebar() {
         Change Language
       </button>
 
-      {/* Accessibility Feature: High Contrast Mode */}
       <button 
         onClick={() => {
           const isHighContrast = document.documentElement.getAttribute('data-contrast') === 'high';
@@ -101,6 +100,11 @@ export default function Sidebar() {
       >
         High Contrast
       </button>
+
+      <div className="mt-auto pt-6 text-xs font-bold text-center border-t-2 border-brutalBlack">
+        <p className="uppercase mb-1 tracking-tighter">🔒 PII Shield Active</p>
+        <p className="text-[10px] leading-tight">Voter ID scans are processed in-memory. No PII is stored. 2026 Election Data.</p>
+      </div>
     </div>
   );
 }

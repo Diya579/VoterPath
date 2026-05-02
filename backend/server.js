@@ -4,9 +4,11 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const apiRoutes = require('./routes/api');
 
+const path = require('path');
+
 // Load environment variables locally, skip in production (handled by Cloud Run)
 if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config({ path: '../.env' });
+  require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 }
 
 const app = express();
@@ -21,7 +23,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
+      scriptSrc: ["'self'", "https://www.googletagmanager.com"],
       connectSrc: [
         "'self'", 
         "https://*.googleapis.com", 
@@ -75,8 +77,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: '1mb' }));
-
-const path = require('path');
 
 // Routes
 app.use('/api', apiRoutes);

@@ -28,8 +28,8 @@ const verifyToken = async (req, res, next) => {
     if (process.env.NODE_ENV === 'test' || req.headers['x-dev-bypass'] === 'voterpath-local') {
       return next();
     }
-    // In production without service account, still allow unauthenticated (graceful degradation)
-    return next();
+    // Strict rejection in production-like environments if auth is missing
+    return res.status(401).json({ error: 'System configuration error: Authentication service unavailable.' });
   }
 
   const authHeader = req.headers.authorization;

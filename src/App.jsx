@@ -14,6 +14,8 @@ const Chatbot = lazy(() => import('./components/Chatbot'));
 const ElectionTimeline = lazy(() => import('./components/ElectionTimeline'));
 const BoothFinder = lazy(() => import('./components/BoothFinder'));
 
+const OFFICIAL_VOTER_GUIDE_YT_ID = '-ucLifzB3HM';
+
 function Home() {
   const { t } = useTranslation();
   return (
@@ -27,7 +29,7 @@ function Home() {
         <div className="aspect-video">
           <iframe 
             className="w-full h-full border-2 border-brutalBlack"
-            src="https://www.youtube.com/embed/-ucLifzB3HM" 
+            src={`https://www.youtube.com/embed/${OFFICIAL_VOTER_GUIDE_YT_ID}`}
             title="Official Voter Guide (by ECI)"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
             referrerPolicy="strict-origin-when-cross-origin"
@@ -49,14 +51,16 @@ const RouteLoader = () => (
 
 export default function App() {
   const { showLangSelector, setShowLangSelector } = useVoterContext();
-  const hasSeeded = useRef(false);
+  const seedingAttempted = useRef(false);
 
   useEffect(() => {
-    // Guard against React 18 Strict Mode double-invocation
-    if (!hasSeeded.current) {
-      seedDatabase();
-      hasSeeded.current = true;
-    }
+    // Robust idempotent seeding guard for production reliability
+    const initApp = async () => {
+      if (seedingAttempted.current) return;
+      seedingAttempted.current = true;
+      await seedDatabase();
+    };
+    initApp();
   }, []);
 
   if (showLangSelector) {
