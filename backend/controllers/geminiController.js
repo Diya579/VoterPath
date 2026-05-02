@@ -82,10 +82,6 @@ const chatWithGemini = async (req, res, next) => {
       const systemInstruction = `You are the VoterPath Expert, an authoritative election assistant.
 - CRITICAL: Respond ONLY in ${targetLang} language using its NATIVE SCRIPT.
 - KNOWLEDGE BASE: Sourced directly from ECI Authoritative Service.
-- Qualifying Date: ${facts.qualifyingDate}.
-- Election Cycle: ${facts.version}.
-- Data Freshness: ${facts.lastUpdated}.
-- PROHIBITED: Do not discuss non-election topics. Do not write code. Do not speculate on results.
 - CONTEXT: ${JSON.stringify(facts.schedules)}`;
 
       const chat = model.startChat({
@@ -95,14 +91,47 @@ const chatWithGemini = async (req, res, next) => {
 
       const result = await chat.sendMessage(`${systemInstruction}\n\nUser: ${prompt}`);
       const response = await result.response;
-      res.json({ text: response.text() });
+      return res.json({ text: response.text() });
+
     } catch (apiError) {
       const err = apiError instanceof Error ? apiError : new Error(String(apiError));
+      
+      // FALLBACK TO GROQ: If Gemini hits 429 (Rate Limit), switch to Llama 3 on Groq
+      if ((err.message.includes('429') || err.message.includes('quota')) && process.env.GROQ_API_KEY) {
+        console.warn('[Chat] Gemini Quota Exceeded. Falling back to Groq Llama-3-70b...');
+        try {
+          const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+          const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: "llama-3.1-70b-versatile",
+              messages: [
+                { role: "system", content: "You are the VoterPath Expert. Grounded in ECI facts. Answer in the requested language/script." },
+                ...history.map(h => ({ role: h.role === 'model' ? 'assistant' : 'user', content: h.parts[0].text })),
+                { role: "user", content: prompt }
+              ],
+              max_tokens: 1000
+            })
+          });
+          
+          if (groqResponse.ok) {
+            const groqData = await groqResponse.json();
+            return res.json({ text: groqData.choices[0].message.content });
+          }
+        } catch (groqErr) {
+          console.error('[Chat] Groq Fallback failed:', groqErr);
+        }
+      }
+
       console.error("Gemini Chat API Error:", err.stack || err.message);
       const status = err.message.includes('GEMINI_API_KEY') ? 500 : 503;
       res.status(status).json({ 
-        error: err.message.includes('GEMINI_API_KEY') 
-          ? 'Server configuration error.' 
+        error: err.message.includes('429') 
+          ? 'Service is heavily loaded. Please try again in a few seconds.' 
           : 'Election information service is temporarily unavailable.' 
       });
     }
@@ -128,95 +157,112 @@ const scanVoterID = async (req, res, next) => {
       return res.status(400).json({ error: 'Unsupported file type. JPEG, PNG, WEBP only.' });
     }
 
-    try {
-      if (!process.env.GEMINI_API_KEY) {
-        throw new Error('GEMINI_API_KEY is not configured on the server.');
-      }
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'Server configuration error: GEMINI_API_KEY is missing.' });
+    }
 
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
-        generationConfig: { responseMimeType: "application/json" }
-      });
-      
-      const base64Data = req.file.buffer.toString('base64');
-      
-      const promptText = `Analyze this Indian Voter ID card. Extract details as a JSON object:
-      {
-        "epic": "string",
-        "name": "string",
-        "gender": "string",
-        "address": "string",
-        "pollingStation": "string",
-        "pollingStationAddress": "string",
-        "constituency": "string",
-        "state": "string",
-        "city": "string"
-      }
-      If a field is unreadable, use null.`;
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.0-flash",
+      generationConfig: { responseMimeType: "application/json" }
+    });
+    
+    const base64Data = req.file.buffer.toString('base64');
+    
+    const promptText = `Analyze this Indian Voter ID card. Extract details as a JSON object:
+    {
+      "epic": "string",
+      "name": "string",
+      "gender": "string",
+      "address": "string",
+      "pollingStation": "string",
+      "pollingStationAddress": "string",
+      "constituency": "string",
+      "state": "string",
+      "city": "string"
+    }
+    If a field is unreadable, use null.`;
 
-      const result = await model.generateContent([
-        promptText,
-        {
-          inlineData: {
-            data: base64Data,
-            mimeType: req.file.mimetype
-          }
-        }
-      ]);
+    // Exponential Backoff Retry Logic
+    let attempts = 0;
+    const maxAttempts = 3;
+    let delay = 2000;
 
-      const response = await result.response;
-      
-      // Handle Safety Filter Blocks
-      if (response.promptFeedback?.blockReason) {
-        throw new Error(`The image was blocked by the safety filter: ${response.promptFeedback.blockReason}`);
-      }
-
-      const rawText = response.text();
-      
-      let rawExtracted;
+    while (attempts < maxAttempts) {
       try {
-        rawExtracted = JSON.parse(rawText);
-      } catch (parseErr) {
-        console.error("JSON Parse Error in Vision Output:", rawText);
-        throw new Error('Failed to parse extraction results. The image might be unreadable.');
+        const result = await model.generateContent([
+          promptText,
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: req.file.mimetype
+            }
+          }
+        ]);
+
+        const response = await result.response;
+        
+        // Handle Safety Filter Blocks
+        if (response.promptFeedback?.blockReason) {
+          throw new Error(`The image was blocked by the safety filter: ${response.promptFeedback.blockReason}`);
+        }
+
+        const rawText = response.text();
+        let rawExtracted;
+        try {
+          rawExtracted = JSON.parse(rawText);
+        } catch (parseErr) {
+          console.error("JSON Parse Error in Vision Output:", rawText);
+          throw new Error('Failed to parse extraction results. The image might be unreadable.');
+        }
+        
+        // Validation & Enrichment
+        const extracted = extractedVoterSchema.parse(rawExtracted);
+        
+        const detectedState = await eciService.resolveState(extracted.state || extracted.city || extracted.address);
+        const election = detectedState ? await eciService.getScheduleForState(detectedState) : null;
+        const booth = await eciService.getBoothForConstituency(extracted.constituency || extracted.pollingStation);
+
+        const enrichedResult = {
+          epic: extracted.epic || null,
+          epicValid: validateVoterIdFormat(extracted.epic || ''),
+          name: extracted.name || null,
+          gender: extracted.gender || null,
+          address: extracted.address || null,
+          pollingStation: extracted.pollingStation || null,
+          pollingStationAddress: extracted.pollingStationAddress || null,
+          constituency: extracted.constituency || null,
+          detectedRegion: detectedState || (extracted.city || extracted.state || null),
+          nearestBooth: booth || extracted.pollingStation || null,
+          election: election,
+          meta: await eciService.getFreshness()
+        };
+
+        return res.json({ result: enrichedResult });
+
+      } catch (apiError) {
+        const err = apiError instanceof Error ? apiError : new Error(String(apiError));
+        attempts++;
+
+        // Retry on 429/Quota
+        if ((err.message.includes('429') || err.message.includes('quota')) && attempts < maxAttempts) {
+          console.warn(`[OCR] Gemini Rate limit hit. Retrying in ${delay}ms... (Attempt ${attempts}/${maxAttempts})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2;
+          continue;
+        }
+
+        console.error("Gemini Vision API Error:", err.stack || err.message);
+        const status = err.message.includes('GEMINI_API_KEY') ? 500 : 503;
+        return res.status(status).json({ 
+          error: err.message.includes('429') 
+            ? 'The AI analysis service is busy. Retrying automatically...' 
+            : (err.message || 'OCR processing service is unavailable.')
+        });
       }
-      
-      // Validation & Enrichment
-      const extracted = extractedVoterSchema.parse(rawExtracted);
-      
-      const detectedState = await eciService.resolveState(extracted.state || extracted.city || extracted.address);
-      const election = detectedState ? await eciService.getScheduleForState(detectedState) : null;
-      const booth = await eciService.getBoothForConstituency(extracted.constituency || extracted.pollingStation);
-
-      const enrichedResult = {
-        epic: extracted.epic || null,
-        epicValid: validateVoterIdFormat(extracted.epic || ''),
-        name: extracted.name || null,
-        gender: extracted.gender || null,
-        address: extracted.address || null,
-        pollingStation: extracted.pollingStation || null,
-        pollingStationAddress: extracted.pollingStationAddress || null,
-        constituency: extracted.constituency || null,
-        detectedRegion: detectedState || (extracted.city || extracted.state || null),
-        nearestBooth: booth || extracted.pollingStation || null,
-        election: election,
-        meta: await eciService.getFreshness()
-      };
-
-      res.json({ result: enrichedResult });
-    } catch (apiError) {
-      const err = apiError instanceof Error ? apiError : new Error(String(apiError));
-      console.error("Gemini Vision API Critical Error:", err);
-      const status = err.message.includes('GEMINI_API_KEY') ? 500 : 503;
-      res.status(status).json({ 
-        error: err.message.includes('GEMINI_API_KEY') 
-          ? 'Server configuration error.' 
-          : (err.message || 'OCR processing service is unavailable.')
-      });
     }
   } catch (error) {
-    console.error("Unhandle OCR Controller Error:", error);
+    console.error("Unhandled OCR Controller Error:", error);
     next(error);
   }
 };

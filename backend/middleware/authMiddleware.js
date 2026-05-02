@@ -55,14 +55,17 @@ const verifyToken = async (req, res, next) => {
 
   // CASE 2: No token or Firebase uninitialized -> Check Production Origin Integrity
   const origin = req.headers.origin || req.headers.referer;
-  const isAllowedOrigin = process.env.ALLOWED_ORIGINS && 
-                         process.env.ALLOWED_ORIGINS.split(',').some(o => origin && origin.startsWith(o.trim()));
+  const allowedList = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [];
+  const isAllowedOrigin = allowedList.some(o => origin && origin.startsWith(o));
 
   if (isAllowedOrigin || process.env.NODE_ENV === 'test') {
     return next();
   }
 
   console.error('[Auth] Security Block: Unauthorized origin or missing authentication token.');
+  console.error(`[Auth] Rejected Origin: ${origin}`);
+  console.error(`[Auth] Configured Allowed Origins: ${allowedList.join(', ')}`);
+  
   return res.status(403).json({ 
     error: 'Security Policy Violation: Access restricted to official VoterPath domains.' 
   });
