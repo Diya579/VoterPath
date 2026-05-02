@@ -289,8 +289,7 @@ export default function IDScanner() {
           {suggestLanguage('Punjab', 'pa', 'Punjabi')}
           {suggestLanguage('Odisha', 'or', 'Odia')}
           </article>
-        )} </div>
-      )}
+        )}
       </div>
     </div>
   );
