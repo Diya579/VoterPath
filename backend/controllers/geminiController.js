@@ -64,6 +64,10 @@ const chatWithGemini = async (req, res, next) => {
     const prompt = sanitizePrompt(rawPrompt);
 
     try {
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error('GEMINI_API_KEY is not configured on the server.');
+      }
+
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       
@@ -89,8 +93,13 @@ const chatWithGemini = async (req, res, next) => {
       const response = await result.response;
       res.json({ text: response.text() });
     } catch (apiError) {
-      console.warn("Gemini API Error:", apiError.message);
-      res.status(503).json({ error: 'Election information service is temporarily unavailable. Please verify with eci.gov.in.' });
+      console.error("Gemini Chat API Error:", apiError.stack || apiError.message);
+      const status = apiError.message.includes('GEMINI_API_KEY') ? 500 : 503;
+      res.status(status).json({ 
+        error: apiError.message.includes('GEMINI_API_KEY') 
+          ? 'Server configuration error.' 
+          : 'Election information service is temporarily unavailable.' 
+      });
     }
   } catch (error) {
     next(error);
@@ -112,6 +121,10 @@ const scanVoterID = async (req, res, next) => {
     }
 
     try {
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error('GEMINI_API_KEY is not configured on the server.');
+      }
+
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.0-flash",
@@ -144,8 +157,16 @@ const scanVoterID = async (req, res, next) => {
         }
       ]);
 
-      const rawText = result.response.text();
-      const rawExtracted = JSON.parse(rawText);
+      const response = await result.response;
+      const rawText = response.text();
+      
+      let rawExtracted;
+      try {
+        rawExtracted = JSON.parse(rawText);
+      } catch (parseErr) {
+        console.error("JSON Parse Error in Vision Output:", rawText);
+        throw new Error('Failed to parse extraction results. The image might be unreadable.');
+      }
       
       // Validation & Enrichment
       const extracted = extractedVoterSchema.parse(rawExtracted);
@@ -171,8 +192,13 @@ const scanVoterID = async (req, res, next) => {
 
       res.json({ result: enrichedResult });
     } catch (apiError) {
-      console.warn("Gemini Vision API Error:", apiError.message);
-      res.status(503).json({ error: 'OCR processing service is unavailable. Please verify manually.' });
+      console.error("Gemini Vision API Error:", apiError.stack || apiError.message);
+      const status = apiError.message.includes('GEMINI_API_KEY') ? 500 : 503;
+      res.status(status).json({ 
+        error: apiError.message.includes('GEMINI_API_KEY') 
+          ? 'Server configuration error.' 
+          : (apiError.message || 'OCR processing service is unavailable.')
+      });
     }
   } catch (error) {
     next(error);
