@@ -8,7 +8,7 @@ const path = require('path');
 
 // Load environment variables locally, skip in production (handled by Cloud Run)
 if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config({ path: path.join(__dirname, '../../.env') });
+  require('dotenv').config({ path: path.join(__dirname, '../.env') });
 }
 
 const app = express();
@@ -83,7 +83,7 @@ const corsMiddleware = cors({
     // Check if the origin starts with any of our allowed patterns (handles trailing slashes)
     const isAllowed = allowedOrigins.some(allowed => origin.startsWith(allowed));
 
-    if (isAllowed || process.env.NODE_ENV === 'test') {
+    if (isAllowed) {
       callback(null, true);
     } else {
       console.error(`[CORS] Rejected Origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);

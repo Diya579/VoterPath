@@ -8,11 +8,10 @@ app.use(express.json());
 app.get('/test-auth', verifyToken, (req, res) => res.json({ success: true }));
 
 describe('Auth Middleware', () => {
-  it('should allow requests in test mode (no FIREBASE_SERVICE_ACCOUNT)', async () => {
-    // When Firebase Admin is not initialized (CI/test), middleware uses dev bypass
+  it('should allow requests from authorized origins when no token is provided', async () => {
     const response = await request(app)
       .get('/test-auth')
-      .set('x-dev-bypass', 'voterpath-local');
+      .set('Origin', 'http://localhost:5173');
     expect(response.statusCode).toBe(200);
     expect(response.body.success).toBe(true);
   });

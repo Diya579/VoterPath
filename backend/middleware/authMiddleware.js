@@ -55,10 +55,15 @@ const verifyToken = async (req, res, next) => {
 
   // CASE 2: No token or Firebase uninitialized -> Check Production Origin Integrity
   const origin = req.headers.origin || req.headers.referer;
-  const allowedList = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) : [];
+  const allowedList = process.env.ALLOWED_ORIGINS 
+    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) 
+    : [
+        'http://localhost:5173',
+        'https://voterpath-776684989084.us-central1.run.app'
+      ];
   const isAllowedOrigin = allowedList.some(o => origin && origin.startsWith(o));
 
-  if (isAllowedOrigin || process.env.NODE_ENV === 'test') {
+  if (isAllowedOrigin) {
     return next();
   }
 

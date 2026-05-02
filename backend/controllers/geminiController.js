@@ -128,8 +128,7 @@ const chatWithGemini = async (req, res, next) => {
       }
 
       console.error("Gemini Chat API Error:", err.stack || err.message);
-      const status = err.message.includes('GEMINI_API_KEY') ? 500 : 503;
-      res.status(status).json({ 
+      res.status(503).json({ 
         error: err.message.includes('429') 
           ? 'Service is heavily loaded. Please try again in a few seconds.' 
           : 'Election information service is temporarily unavailable.' 
