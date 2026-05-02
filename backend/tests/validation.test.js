@@ -1,5 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-const { validateVoterIdFormat } = require('../../shared/validation');
+const { validateVoterIdFormat } = require('../shared/validation');
 
 describe('Shared Voter ID Validation', () => {
   it('validates standard EPIC format (3 letters + 7 digits)', () => {
