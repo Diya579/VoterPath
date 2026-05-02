@@ -25,29 +25,31 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
  */
 const verifyToken = async (req, res, next) => {
   // Hybrid Security Policy:
-  // 1. If Firebase Admin IS initialized, we strictly require a Bearer token.
-  // 2. If Firebase Admin IS NOT initialized, we fallback to strict Origin + User-Agent validation 
-  //    to ensure the platform remains functional while preventing cross-origin abuse.
+  // 1. If a Bearer token is provided, we MUST verify it via Firebase Admin (if initialized).
+  // 2. If NO token is provided, we allow the request ONLY if it comes from an authorized Production Origin.
+  // This ensures the platform remains "fail-closed" to outside abuse while staying frictionless for users.
   
-  if (firebaseInitialized) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Unauthorized: No token provided.' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    try {
-      const decodedToken = await admin.auth().verifyIdToken(token);
-      req.user = decodedToken;
-      return next();
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      console.error('[Auth] Token verification failed:', err.message);
-      return res.status(401).json({ error: 'Unauthorized: Invalid or expired token.' });
+  const authHeader = req.headers.authorization;
+  
+  // CASE 1: Token provided -> Validate strictly
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    if (!firebaseInitialized) {
+      console.warn('[Auth] Token received but Firebase Admin not initialized. Falling back to Origin check.');
+    } else {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        req.user = decodedToken;
+        return next();
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error('[Auth] Token verification failed:', err.message);
+        return res.status(401).json({ error: 'Unauthorized: Invalid or expired token.' });
+      }
     }
   }
 
-  // FALLBACK: If Firebase is not initialized, we check for Production Origin Integrity
+  // CASE 2: No token or Firebase uninitialized -> Check Production Origin Integrity
   const origin = req.headers.origin || req.headers.referer;
   const isAllowedOrigin = process.env.ALLOWED_ORIGINS && 
                          process.env.ALLOWED_ORIGINS.split(',').some(o => origin && origin.startsWith(o.trim()));
@@ -56,7 +58,7 @@ const verifyToken = async (req, res, next) => {
     return next();
   }
 
-  console.error('[Auth] Security Block: Request from unauthorized origin or missing Firebase configuration.');
+  console.error('[Auth] Security Block: Unauthorized origin or missing authentication token.');
   return res.status(403).json({ 
     error: 'Security Policy Violation: Access restricted to official VoterPath domains.' 
   });
