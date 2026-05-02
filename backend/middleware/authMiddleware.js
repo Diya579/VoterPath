@@ -18,8 +18,12 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
 }
 
 /**
+ * @typedef {import('express').Request & { user?: any }} AuthenticatedRequest
+ */
+
+/**
  * Token verification middleware.
- * @param {import('express').Request} req
+ * @param {AuthenticatedRequest} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
