@@ -114,28 +114,28 @@ export default function ElectionTimeline() {
               <iframe 
                 width="100%" 
                 height="100%" 
-                src="https://www.youtube.com/embed/S_8qM888zYo" 
+                src="https://www.youtube.com/embed/XGJQNKFYqYI" 
                 title="Voter Guide" 
                 frameBorder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                 allowFullScreen
               ></iframe>
             </div>
-            <p className="font-bold uppercase italic text-sm">How to verify your name in the Voter List</p>
+            <p className="font-bold uppercase italic text-sm">Step-by-step guide to the voting process</p>
           </div>
           <div className="space-y-4">
             <div className="aspect-video brutal-border shadow-brutal-sm overflow-hidden bg-black">
               <iframe 
                 width="100%" 
                 height="100%" 
-                src="https://www.youtube.com/embed/6_HlX1nFf5Q" 
+                src="https://www.youtube.com/embed/ZJReQ8ao0SU" 
                 title="EVM Guide" 
                 frameBorder="0" 
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                 allowFullScreen
               ></iframe>
             </div>
-            <p className="font-bold uppercase italic text-sm">Step-by-step guide to using the EVM/VVPAT</p>
+            <p className="font-bold uppercase italic text-sm">How to use EVM & VVPAT (Know Your EVM)</p>
           </div>
         </div>
       </div>
