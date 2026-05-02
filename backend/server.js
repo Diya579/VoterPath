@@ -64,8 +64,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl) in non-production
-    if (!origin && process.env.NODE_ENV !== 'production') {
+    // Allow requests with no origin (e.g. same-origin, mobile apps, curl)
+    if (!origin) {
       return callback(null, true);
     }
     
