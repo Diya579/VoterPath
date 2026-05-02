@@ -16,20 +16,16 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   console.warn('[Auth] FIREBASE_SERVICE_ACCOUNT not set. Running in development bypass mode.');
 }
 
-/**
- * Token verification middleware.
- * - Production (FIREBASE_SERVICE_ACCOUNT set): validates Firebase Bearer token; rejects with 401 otherwise.
- * - Development (env not set): allows requests that include a special X-Dev-Bypass header ONLY.
- *   This header is stripped at the Cloud Run ingress layer in production.
- */
 const verifyToken = async (req, res, next) => {
-  // Development bypass — only when Firebase Admin is not initialized
+  // Strict Fail-Closed Policy:
+  // If Firebase Admin is not initialized, we only allow access in TEST environment.
+  // We have removed the 'x-dev-bypass' header to prevent production bypass.
   if (!firebaseInitialized) {
-    if (process.env.NODE_ENV === 'test' || req.headers['x-dev-bypass'] === 'voterpath-local') {
+    if (process.env.NODE_ENV === 'test') {
       return next();
     }
-    // Strict rejection in production-like environments if auth is missing
-    return res.status(401).json({ error: 'System configuration error: Authentication service unavailable.' });
+    console.error('[Auth] System configuration error: Firebase Admin not initialized.');
+    return res.status(500).json({ error: 'Internal Security Configuration Error: Authentication Unavailable.' });
   }
 
   const authHeader = req.headers.authorization;

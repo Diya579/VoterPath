@@ -2,34 +2,49 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { z } = require('zod');
 const { validateVoterIdFormat } = require('../shared/validation');
 const { electionData, regionToState, constituencyBooths } = require('../data/electionData');
+const { getEciData } = require('../services/eciService');
 
 // Schema for request validation
 const chatSchema = z.object({
   prompt: z.string().min(1).max(1000),
   history: z.array(z.object({
     role: z.enum(['user', 'model']),
-    parts: z.string()
+    parts: z.array(z.object({ text: z.string() }))
   })).optional()
 });
 
+const extractedVoterSchema = z.object({
+  epic: z.string().optional(),
+  name: z.string().optional(),
+  gender: z.string().optional(),
+  address: z.string().optional(),
+  pollingStation: z.string().optional(),
+  pollingStationAddress: z.string().optional(),
+  constituency: z.string().optional(),
+  state: z.string().optional(),
+  city: z.string().optional()
+});
+
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 /**
- * Strips common prompt-injection patterns from user input.
- * @param {string} input
- * @returns {string}
+ * Robustly sanitizes user input to prevent common prompt injection patterns.
+ * Preserves the core intent while stripping structural attack keywords.
  */
 function sanitizePrompt(input) {
+  if (!input) return '';
   return input
-    .replace(/\[system\]/gi, '')
-    .replace(/###\s*(system|instruction)/gi, '')
-    .replace(/<\|.*?\|>/g, '')
-    .replace(/ignore previous instructions?/gi, '')
+    .replace(/<script.*?>.*?<\/script>/gi, '') // Remove script tags
+    .replace(/\[\/?system\]/gi, '')           // Strip [system] override attempts
+    .replace(/###\s*(system|instruction)/gi, '') // Strip markdown system blocks
+    .replace(/<\|.*?\|>/g, '')               // Strip token-boundary injections
+    .replace(/ignore previous instructions?/gi, '') // Classic injection phrase
     .trim();
 }
 
 /**
- * PRIVACY NOTICE: VoterPath processes PII (Name, EPIC ID, Address) in memory 
- * for OCR extraction and local enrichment ONLY. We do NOT persist this data 
- * to any database or log it to external services beyond the transient AI request.
+ * PRIVACY NOTICE: VoterPath processes PII in memory for extraction and enrichment only.
+ * Data is not persisted. The 'rawText' from LLM is stripped before sending to client.
  */
 
 const chatWithGemini = async (req, res, next) => {
@@ -38,31 +53,37 @@ const chatWithGemini = async (req, res, next) => {
     if (!validation.success) {
       return res.status(400).json({ error: 'Invalid input format', details: validation.error });
     }
-    const { prompt: rawPrompt } = validation.data;
+    const { prompt: rawPrompt, history = [] } = validation.data;
     const prompt = sanitizePrompt(rawPrompt);
 
     try {
+      const eci = await getEciData();
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       
       const langMatch = prompt.match(/\[Please strictly answer in (\w+)\]/);
       const targetLang = langMatch ? langMatch[1] : 'English';
 
-      const systemInstruction = `You are an expert AI assistant for VoterPath India 2026 Assembly Elections.
-      
+      const systemInstruction = `You are an expert AI assistant for VoterPath India 2026.
 CRITICAL LANGUAGE RULE: You MUST respond ONLY in ${targetLang} language using its NATIVE SCRIPT.
 - Use native script ONLY (not romanized).
 - You are an ELECTION assistant ONLY. DO NOT answer unrelated questions.
-- Current Date/Context: Election cycle 2026.
-- The qualifying date to vote is Jan 1, 2026. Voters must be 18+ on this date.
-- Election Dates: TN/Kerala (Apr 6), WB (Apr 17/22), Assam (Apr 22), Puducherry (May 2). Counting: May 10, 2026.`;
+- AUTH DATA: Source from Election Commission of India (ECI).
+- Qualifying Date: ${eci.qualifyingDate}.
+- States involved: ${Object.keys(eci.states).join(', ')}.
+- Election Dates: ${JSON.stringify(eci.states)}`;
 
-      const result = await model.generateContent(`${systemInstruction}\n\nUser Question: ${prompt}`);
+      const chat = model.startChat({
+        history: history,
+        generationConfig: { maxOutputTokens: 1000 },
+      });
+
+      const result = await chat.sendMessage(`${systemInstruction}\n\nUser Question: ${prompt}`);
       const response = await result.response;
       res.json({ text: response.text() });
     } catch (apiError) {
-      console.warn("Gemini API Error, using Mock Fallback:", apiError.message);
-      res.json({ text: `As an AI Election Expert, I can help you with that! Ensure your name is on the electoral roll. If you need help finding your polling booth, use the Polling Booth Finder on the sidebar!` });
+      console.warn("Gemini API Error:", apiError.message);
+      res.status(503).json({ error: 'Election information service is temporarily unavailable. Please verify with eci.gov.in.' });
     }
   } catch (error) {
     next(error);
@@ -73,6 +94,11 @@ const scanVoterID = async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    // MIME type allowlisting
+    if (!ALLOWED_MIME_TYPES.includes(req.file.mimetype)) {
+      return res.status(400).json({ error: 'Unsupported file type. Please upload JPEG, PNG or WEBP.' });
     }
 
     try {
@@ -106,7 +132,10 @@ const scanVoterID = async (req, res, next) => {
 
       const text = result.response.text() || "{}";
       const jsonMatch = text.match(/\{[\s\S]*\}/);
-      const extracted = jsonMatch ? JSON.parse(jsonMatch[0]) : { epic: 'NOT_FOUND' };
+      const rawExtracted = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
+      
+      // Strict schema validation for extracted data
+      const extracted = extractedVoterSchema.parse(rawExtracted);
 
       const detectedState = resolveState(extracted.state, extracted.city, extracted.address, extracted.constituency);
       const election = detectedState ? (electionData[detectedState] || null) : null;
@@ -126,22 +155,11 @@ const scanVoterID = async (req, res, next) => {
         election: election
       };
 
-      res.json({ result: enrichedResult, rawText: text });
+      // SECURITY: We do NOT return 'rawText' to prevent exposing model internal reasoning or PII-heavy raw blocks.
+      res.json({ result: enrichedResult });
     } catch (apiError) {
-      console.warn("Gemini Vision API Error, using Mock Fallback:", apiError.message);
-      const mockResult = {
-        epic: "XYZ7654321",
-        name: "Demo Voter",
-        gender: "Male",
-        address: "123, Anna Salai, Chennai – 600002",
-        pollingStation: "Madras Christian College Higher Secondary School",
-        pollingStationAddress: "Near Tambaram Station, Chennai – 600059",
-        constituency: "Chennai Central",
-        detectedRegion: "Tamil Nadu",
-        nearestBooth: "Madras Christian College Higher Secondary School, Tambaram",
-        election: electionData['Tamil Nadu']
-      };
-      res.json({ result: mockResult, rawText: JSON.stringify(mockResult) });
+      console.warn("Gemini Vision API Error:", apiError.message);
+      res.status(503).json({ error: 'OCR processing service is unavailable. Please enter details manually or try again later.' });
     }
   } catch (error) {
     next(error);

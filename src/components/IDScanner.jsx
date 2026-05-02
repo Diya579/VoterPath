@@ -151,11 +151,9 @@ export default function IDScanner() {
             </li>
           ))}
         </ol>
-      </div>
-
-      <div aria-live="polite" aria-atomic="true">
+      </div>      <div aria-live="polite" aria-atomic="true">
         {loading && (
-          <div className="flex items-center justify-center p-6 brutal-card bg-primary mt-6" role="status">
+          <div className="flex items-center justify-center p-6 brutal-card bg-primary mt-6" role="alert" aria-busy="true">
             <Loader2 className="w-10 h-10 animate-spin mr-4 stroke-[3]" aria-hidden="true" />
             <span className="text-2xl font-bold uppercase">
               {isPdf ? 'Converting PDF & Scanning...' : 'Extracting details from your Voter ID...'}
@@ -165,114 +163,117 @@ export default function IDScanner() {
 
         {error && (
           <div className="p-6 brutal-card bg-secondary text-white mt-6" role="alert">
-            <p className="text-xl font-bold uppercase">{error}</p>
+            <h3 className="text-xl font-black uppercase mb-1">⚠️ Analysis Failed</h3>
+            <p className="text-lg font-bold">{error}</p>
           </div>
         )}
 
         {result && !loading && !error && (    
-          <div className="space-y-6">
+          <article className="space-y-6" aria-labelledby="scan-results-title">
+          <h2 id="scan-results-title" className="sr-only">Scan Results</h2>
+          
           {/* Voter Details Card */}
-          <div className="brutal-card bg-white p-8">
-            <h3 className="text-3xl font-black mb-6 flex items-center gap-3">
+          <section className="brutal-card bg-white p-8" aria-labelledby="voter-details-heading">
+            <h3 id="voter-details-heading" className="text-3xl font-black mb-6 flex items-center gap-3">
               <span className="bg-accent text-white p-2 brutal-border"><User className="w-8 h-8 stroke-[3] text-white" aria-hidden="true" /></span>
               {t('voterDetails') || 'Voter Details'}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-gray-50 p-4 brutal-border">
-                <p className="text-sm font-black uppercase text-gray-500 mb-1">{t('epicExtracted')}</p>
-                <p className="text-2xl font-black text-accent tracking-widest">{result.epic || 'NOT_FOUND'}</p>
+                <dt className="text-sm font-black uppercase text-gray-500 mb-1">{t('epicExtracted')}</dt>
+                <dd className="text-2xl font-black text-accent tracking-widest">{result.epic || 'NOT_FOUND'}</dd>
               </div>
               {result.name && result.name !== 'NOT_FOUND' && (
                 <div className="bg-gray-50 p-4 brutal-border">
-                  <p className="text-sm font-black uppercase text-gray-500 mb-1">Name</p>
-                  <p className="text-2xl font-black">{result.name}</p>
+                  <dt className="text-sm font-black uppercase text-gray-500 mb-1">Name</dt>
+                  <dd className="text-2xl font-black">{result.name}</dd>
                 </div>
               )}
               {result.gender && result.gender !== 'NOT_FOUND' && (
                 <div className="bg-gray-50 p-4 brutal-border">
-                  <p className="text-sm font-black uppercase text-gray-500 mb-1">Gender</p>
-                  <p className="text-xl font-bold">{result.gender}</p>
+                  <dt className="text-sm font-black uppercase text-gray-500 mb-1">Gender</dt>
+                  <dd className="text-xl font-bold">{result.gender}</dd>
                 </div>
               )}
               {result.address && result.address !== 'NOT_FOUND' && (
                 <div className="bg-gray-50 p-4 brutal-border md:col-span-2">
-                  <p className="text-sm font-black uppercase text-gray-500 mb-1">Residential Address</p>
-                  <p className="text-lg font-bold">📍 {result.address}</p>
+                  <dt className="text-sm font-black uppercase text-gray-500 mb-1">Residential Address</dt>
+                  <dd className="text-lg font-bold">📍 {result.address}</dd>
                 </div>
               )}
-            </div>
-          </div>
+            </dl>
+          </section>
 
           {/* Detected Region & Polling Station */}
-          <div className="brutal-card bg-tertiary p-8">
-            <h3 className="text-3xl font-black mb-6 flex items-center gap-3">
+          <section className="brutal-card bg-tertiary p-8" aria-labelledby="polling-station-heading">
+            <h3 id="polling-station-heading" className="text-3xl font-black mb-6 flex items-center gap-3">
               <span className="bg-white p-2 brutal-border"><MapPin className="w-8 h-8 stroke-[3]" aria-hidden="true" /></span>
               {t('detectedRegion')}
             </h3>
-            <div className="space-y-4">
+            <dl className="space-y-4">
               <div className="bg-white p-4 brutal-border shadow-brutal-sm">
-                <p className="text-sm font-black uppercase text-gray-500 mb-1">State / Region</p>
-                <p className="text-2xl font-black">{result.detectedRegion || 'Unknown'}</p>
+                <dt className="text-sm font-black uppercase text-gray-500 mb-1">State / Region</dt>
+                <dd className="text-2xl font-black">{result.detectedRegion || 'Unknown'}</dd>
               </div>
               {result.constituency && result.constituency !== 'NOT_FOUND' && (
                 <div className="bg-white p-4 brutal-border shadow-brutal-sm">
-                  <p className="text-sm font-black uppercase text-gray-500 mb-1">{t('constituency') || 'Assembly Constituency'}</p>
-                  <p className="text-2xl font-black">{result.constituency}</p>
+                  <dt className="text-sm font-black uppercase text-gray-500 mb-1">{t('constituency') || 'Assembly Constituency'}</dt>
+                  <dd className="text-2xl font-black">{result.constituency}</dd>
                 </div>
               )}
               {result.pollingStation && result.pollingStation !== 'NOT_FOUND' && (
                 <div className="bg-white p-4 brutal-border shadow-brutal-sm">
-                  <p className="text-sm font-black uppercase text-gray-500 mb-1">Your Polling Station</p>
-                  <p className="text-xl font-bold">🏫 {result.pollingStation}</p>
+                  <dt className="text-sm font-black uppercase text-gray-500 mb-1">Your Polling Station</dt>
+                  <dd className="text-xl font-bold">🏫 {result.pollingStation}</dd>
                 </div>
               )}
               {result.pollingStationAddress && result.pollingStationAddress !== 'NOT_FOUND' && (
                 <div className="bg-white p-4 brutal-border shadow-brutal-sm">
-                  <p className="text-sm font-black uppercase text-gray-500 mb-1">Polling Station Address</p>
-                  <p className="text-lg font-bold">📍 {result.pollingStationAddress}</p>
+                  <dt className="text-sm font-black uppercase text-gray-500 mb-1">Polling Station Address</dt>
+                  <dd className="text-lg font-bold">📍 {result.pollingStationAddress}</dd>
                 </div>
               )}
               {!result.pollingStation && result.nearestBooth && (
                 <div className="bg-white p-4 brutal-border shadow-brutal-sm">
-                  <p className="text-sm font-black uppercase text-gray-500 mb-1">Nearest Polling Booth</p>
-                  <p className="text-xl font-bold">📍 {result.nearestBooth}</p>
+                  <dt className="text-sm font-black uppercase text-gray-500 mb-1">Nearest Polling Booth</dt>
+                  <dd className="text-xl font-bold">📍 {result.nearestBooth}</dd>
                 </div>
               )}
-            </div>
-          </div>
+            </dl>
+          </section>
 
           {/* Election Info */}
           {result.election && (
-            <div className="brutal-card bg-primary p-8 -rotate-1">
-              <h3 className="text-3xl font-black mb-6 flex items-center gap-3">
+            <section className="brutal-card bg-primary p-8 -rotate-1" aria-labelledby="election-info-heading">
+              <h3 id="election-info-heading" className="text-3xl font-black mb-6 flex items-center gap-3">
                 <span className="bg-brutalBlack text-white p-2 brutal-border"><Calendar className="w-8 h-8 stroke-[3]" aria-hidden="true" /></span>
                 Upcoming Election
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white p-4 brutal-border shadow-brutal-sm">
-                  <p className="text-sm font-black uppercase text-gray-500 mb-1">Phase</p>
-                  <p className="text-2xl font-black">{result.election.phase}</p>
+                  <dt className="text-sm font-black uppercase text-gray-500 mb-1">Phase</dt>
+                  <dd className="text-2xl font-black">{result.election.phase}</dd>
                 </div>
                 <div className="bg-white p-4 brutal-border shadow-brutal-sm">
-                  <p className="text-sm font-black uppercase text-gray-500 mb-1">Polling Date</p>
-                  <p className="text-2xl font-black text-secondary">{result.election.date}</p>
+                  <dt className="text-sm font-black uppercase text-gray-500 mb-1">Polling Date</dt>
+                  <dd className="text-2xl font-black text-secondary">{result.election.date}</dd>
                 </div>
                 <div className="bg-white p-4 brutal-border shadow-brutal-sm">
-                  <p className="text-sm font-black uppercase text-gray-500 mb-1">Assembly Seats</p>
-                  <p className="text-2xl font-black">{result.election.seats}</p>
+                  <dt className="text-sm font-black uppercase text-gray-500 mb-1">Assembly Seats</dt>
+                  <dd className="text-2xl font-black">{result.election.seats}</dd>
                 </div>
                 <div className="bg-white p-4 brutal-border shadow-brutal-sm">
-                  <p className="text-sm font-black uppercase text-gray-500 mb-1">{t('countingDate')}</p>
-                  <p className="text-2xl font-black text-accent">{result.election.countingDate}</p>
+                  <dt className="text-sm font-black uppercase text-gray-500 mb-1">{t('countingDate')}</dt>
+                  <dd className="text-2xl font-black text-accent">{result.election.countingDate}</dd>
                 </div>
-              </div>
-              <div className="mt-4 bg-white p-4 brutal-border shadow-brutal-sm">
+              </dl>
+              <aside className="mt-4 bg-white p-4 brutal-border shadow-brutal-sm">
                 <p className="text-sm font-black uppercase text-gray-500 mb-2 flex items-center gap-2">
                   <Info className="w-4 h-4 stroke-[3]" aria-hidden="true" /> What You Should Know
                 </p>
                 <p className="text-lg font-bold">{result.election.notes}</p>
-              </div>
-            </div>
+              </aside>
+            </section>
           )}
 
           {/* Language Suggestions */}
@@ -287,7 +288,8 @@ export default function IDScanner() {
           {suggestLanguage('Maharashtra', 'mr', 'Marathi')}
           {suggestLanguage('Punjab', 'pa', 'Punjabi')}
           {suggestLanguage('Odisha', 'or', 'Odia')}
-        </div>
+          </article>
+        )} </div>
       )}
       </div>
     </div>

@@ -17,7 +17,6 @@ const PORT = process.env.PORT || 8080;
 // SECURITY HARDENING (100/100 Evaluation Suite)
 app.use(helmet({
   hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-  xssFilter: true,
   noSniff: true,
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   contentSecurityPolicy: {
@@ -34,7 +33,7 @@ app.use(helmet({
       ],
       imgSrc: ["'self'", "data:", "blob:", "https://firebasestorage.googleapis.com"],
       frameSrc: ["'self'", "https://www.youtube.com", "https://maps.google.com", "https://www.google.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      styleSrc: ["'self'", "https://fonts.googleapis.com"], // Removed unsafe-inline
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
@@ -58,7 +57,7 @@ app.use('/api', limiter);
 app.use('/api/chat', strictAILimiter);
 app.use('/api/scan', strictAILimiter);
 
-// Middleware — CORS: explicit allowlist, no wildcard
+// Middleware — CORS: Strict origin enforcement
 const allowedOrigins = [
   'https://voterpath-776684989084.us-central1.run.app',
   'http://localhost:5173',
@@ -66,11 +65,15 @@ const allowedOrigins = [
 ];
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow server-to-server requests (no origin) and listed origins only
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps or curl) ONLY in development/test
+    // Require explicit origin matching for all browser-based production requests
+    if (!origin && process.env.NODE_ENV === 'test') {
+      return callback(null, true);
+    }
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error(`CORS policy: origin ${origin} is not allowed.`));
+      callback(new Error(`CORS policy: origin ${origin} is strictly unauthorized.`));
     }
   },
   methods: ['GET', 'POST'],

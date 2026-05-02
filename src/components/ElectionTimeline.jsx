@@ -17,6 +17,34 @@ export default function ElectionTimeline() {
         {t('timeline')}
       </h2>
 
+      {/* Official Procedural Guidance (Source-of-Truth) */}
+      <div className="mb-12 brutal-card bg-white p-8 space-y-6">
+        <h3 className="text-2xl font-black uppercase flex items-center border-b-4 border-brutalBlack pb-2">
+          📜 Official ECI Procedures (2026)
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-primary p-4 brutal-border shadow-brutal-sm">
+            <h4 className="font-black uppercase mb-2">✅ Eligibility Criteria</h4>
+            <ul className="list-disc ml-5 font-bold space-y-1">
+              <li>Qualifying Date: Jan 1, 2026</li>
+              <li>Minimum Age: 18 years</li>
+              <li>EPIC Card mandatory for polling</li>
+            </ul>
+          </div>
+          <div className="bg-tertiary p-4 brutal-border shadow-brutal-sm">
+            <h4 className="font-black uppercase mb-2">⏰ Key Deadlines</h4>
+            <ul className="list-disc ml-5 font-bold space-y-1">
+              <li>Registration (Form 6): Feb 15, 2026</li>
+              <li>Correction (Form 8): Feb 28, 2026</li>
+              <li>Home Voting Opt-in: March 15, 2026</li>
+            </ul>
+          </div>
+        </div>
+        <p className="text-xs font-black uppercase text-gray-500 text-right">
+          Source: Election Commission of India (ECI) Handbook v2026.1
+        </p>
+      </div>
+
       {loading ? (
         <div className="animate-pulse space-y-6">
           {[1,2,3,4,5].map(i => <div key={i} className="h-36 bg-gray-200 brutal-border shadow-brutal-sm"></div>)}

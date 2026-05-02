@@ -10,26 +10,31 @@ export const useAIAssistant = () => {
     setMessages(prev => [...prev, newMsg]);
 
     try {
+      // Map messages to the format expected by Gemini API (role: user/model, parts: [{ text }])
+      const history = messages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.content }]
+      }));
+
       // Calls our secure Node.js backend instead of exposing Gemini key
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({ prompt, history })
       });
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Server error: ${response.status}`);
       }
 
       const data = await response.json();
-      // BUGFIX: use consistent { role, content } shape — previously used { id, sender, text }
       setMessages(prev => [...prev, { role: 'assistant', content: data.text }]);
 
     } catch (err) {
-      // Use consistent message shape so Chatbot.jsx renders msg.content correctly
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, I am having trouble connecting to my servers right now. Please try again.'
+        content: err.message || 'Sorry, I am having trouble connecting to my servers right now. Please try again.'
       }]);
     } finally {
       setLoading(false);
