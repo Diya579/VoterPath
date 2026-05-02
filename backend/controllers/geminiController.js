@@ -1,5 +1,6 @@
 const Groq = require('groq-sdk');
 const { z } = require('zod');
+const { validateVoterIdFormat } = require('../shared/validation');
 
 // Schema for request validation
 const chatSchema = z.object({
@@ -199,6 +200,7 @@ Be as accurate as possible. Extract text exactly as printed. Do NOT invent or gu
 
       const enrichedResult = {
         epic: extracted.epic || 'NOT_FOUND',
+        epicValid: validateVoterIdFormat(extracted.epic), // Server-side validation
         name: extracted.name || 'NOT_FOUND',
         gender: extracted.gender || null,
         address: extracted.address || null,

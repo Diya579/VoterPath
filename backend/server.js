@@ -45,7 +45,16 @@ const limiter = rateLimit({
   max: 100, // Limit each IP to 100 requests per windowMs
   message: { error: 'Too many requests from this IP, please try again after 15 minutes' }
 });
+
+const strictAILimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // 10 requests per minute
+  message: { error: 'Rate limit exceeded for AI features. Please wait a minute.' }
+});
+
 app.use('/api', limiter);
+app.use('/api/chat', strictAILimiter);
+app.use('/api/scan', strictAILimiter);
 
 // Middleware — CORS: explicit allowlist, no wildcard
 const allowedOrigins = [

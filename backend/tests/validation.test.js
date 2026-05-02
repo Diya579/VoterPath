@@ -1,22 +1,34 @@
-const { z } = require('zod');
+const { describe, it, expect } = require('@jest/globals');
+const { validateVoterIdFormat } = require('../../shared/validation');
 
-const chatSchema = z.object({
-  prompt: z.string().min(1).max(1000),
-});
-
-describe('Zod Validation Schema', () => {
-  it('accepts valid prompt', () => {
-    const result = chatSchema.safeParse({ prompt: 'Hello' });
-    expect(result.success).toBe(true);
+describe('Shared Voter ID Validation', () => {
+  it('validates standard EPIC format (3 letters + 7 digits)', () => {
+    expect(validateVoterIdFormat('ABC1234567')).toBe(true);
+    expect(validateVoterIdFormat('XYZ7654321')).toBe(true);
   });
 
-  it('rejects empty prompt', () => {
-    const result = chatSchema.safeParse({ prompt: '' });
-    expect(result.success).toBe(false);
+  it('validates extended EPIC format (4 letters + 6-7 digits)', () => {
+    expect(validateVoterIdFormat('ABCD123456')).toBe(true);
+    expect(validateVoterIdFormat('WXYZ1234567')).toBe(true);
   });
 
-  it('rejects missing prompt', () => {
-    const result = chatSchema.safeParse({});
-    expect(result.success).toBe(false);
+  it('allows hyphens and spaces between letters and digits', () => {
+    expect(validateVoterIdFormat('ABC-1234567')).toBe(true);
+    expect(validateVoterIdFormat('ABC 1234567')).toBe(true);
+  });
+
+  it('is case-insensitive', () => {
+    expect(validateVoterIdFormat('abc1234567')).toBe(true);
+    expect(validateVoterIdFormat('Xyz1234567')).toBe(true);
+  });
+
+  it('rejects invalid formats', () => {
+    expect(validateVoterIdFormat('')).toBe(false);
+    expect(validateVoterIdFormat(null)).toBe(false);
+    expect(validateVoterIdFormat(undefined)).toBe(false);
+    expect(validateVoterIdFormat('12345')).toBe(false);
+    expect(validateVoterIdFormat('AB1234567')).toBe(false);   // only 2 letters
+    expect(validateVoterIdFormat('ABCDE1234567')).toBe(false); // 5 letters
+    expect(validateVoterIdFormat('ABC12345')).toBe(false);     // only 5 digits
   });
 });

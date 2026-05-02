@@ -61,7 +61,21 @@ IMPORTANT: Use only native ${targetLang} script. Do NOT romanize. Return only JS
 }
 
 /**
- * Memoized Component for rendering individual booth cards to improve performance.
+ * @typedef {Object} PollingBooth
+ * @property {string} id - Unique booth identifier
+ * @property {string} name - Official booth name
+ * @property {string} address - Physical address
+ * @property {string} constituency - Parent constituency
+ * @property {string} [type] - Booth type (General, Pink, PWD/Accessible)
+ * @property {string} [nameTranslated] - Translated booth name
+ * @property {string} [addressTranslated] - Translated address
+ */
+
+/**
+ * Memoized component for rendering an individual booth card.
+ * @param {Object} props
+ * @param {PollingBooth} props.booth - The booth data to render
+ * @param {function(string): string} props.getBadgeColor - Returns tailwind color classes for booth type
  */
 const BoothCard = memo(({ booth, getBadgeColor }) => (
   <div 
@@ -86,6 +100,31 @@ const BoothCard = memo(({ booth, getBadgeColor }) => (
     </div>
   </div>
 ));
+BoothCard.displayName = 'BoothCard';
+
+/**
+ * Memoized list panel to prevent re-rendering on search input state changes.
+ * @param {Object} props
+ * @param {PollingBooth[]} props.booths - Array of booths to display
+ * @param {function(string): string} props.getBadgeColor - Returns tailwind color classes for booth type
+ * @param {function} props.t - i18n translation function
+ */
+const BoothListPanel = memo(({ booths, getBadgeColor, t }) => (
+  <div className="grid gap-6" role="list" aria-label="Polling booth list">
+    {booths.length === 0 ? (
+      <div className="brutal-card p-10 text-center bg-white">
+        <MapPin className="w-16 h-16 mx-auto mb-4 opacity-30 stroke-[2]" />
+        <p className="text-2xl font-bold uppercase">{t('noBooths')}</p>
+        <p className="text-lg font-semibold text-gray-500 mt-2">Try searching for another constituency above.</p>
+      </div>
+    ) : (
+      booths.map(booth => (
+        <BoothCard key={booth.id} booth={booth} getBadgeColor={getBadgeColor} />
+      ))
+    )}
+  </div>
+));
+BoothListPanel.displayName = 'BoothListPanel';
 
 /**
  * Main component for finding polling booths.
@@ -219,19 +258,7 @@ export default function BoothFinder() {
           {[1,2,3].map(i => <div key={i} className="h-32 bg-gray-200 brutal-border shadow-brutal-sm animate-pulse"></div>)}
         </div>
       ) : (
-        <div className="grid gap-6" role="list" aria-label="Polling booth list">
-          {booths.length === 0 ? (
-            <div className="brutal-card p-10 text-center bg-white">
-              <MapPin className="w-16 h-16 mx-auto mb-4 opacity-30 stroke-[2]" />
-              <p className="text-2xl font-bold uppercase">{t('noBooths')}</p>
-              <p className="text-lg font-semibold text-gray-500 mt-2">Try searching for another constituency above.</p>
-            </div>
-          ) : (
-            booths.map(booth => (
-              <BoothCard key={booth.id} booth={booth} getBadgeColor={getBadgeColor} />
-            ))
-          )}
-        </div>
+        <BoothListPanel booths={booths} getBadgeColor={getBadgeColor} t={t} />
       )}
 
       {/* Google Maps Integration */}

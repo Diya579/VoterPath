@@ -82,9 +82,9 @@ export default function EVMSimulator() {
         </div>
       </div>
       
-      {/* Accessible vote confirmation announcement */}
+      {/* Accessible vote confirmation announcement — WCAG AA contrast ratio ≥ 4.5:1 */}
       <p 
-        className="text-2xl font-bold bg-white inline-block p-4 brutal-border shadow-brutal-sm mt-8 uppercase"
+        className={`text-2xl font-bold inline-block p-4 brutal-border shadow-brutal-sm mt-8 uppercase ${votedFor ? 'bg-green-800 text-white' : 'bg-white text-black'}`}
         aria-live="assertive"
         aria-atomic="true"
       >
