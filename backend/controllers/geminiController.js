@@ -100,7 +100,7 @@ const chatWithGemini = async (req, res, next) => {
       if ((err.message.includes('429') || err.message.includes('quota')) && process.env.GROQ_API_KEY) {
         console.warn('[Chat] Gemini Quota Exceeded. Falling back to Groq Llama-3-70b...');
         try {
-          const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+          // Use native fetch (available in Node 18+)
           const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
