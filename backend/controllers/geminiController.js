@@ -52,6 +52,32 @@ function sanitizePrompt(input) {
 }
 
 /**
+ * Helper to enrich extracted voter data with authoritative ECI facts.
+ * @param {any} rawData 
+ */
+async function enrichVoterData(rawData) {
+  const extracted = extractedVoterSchema.parse(rawData);
+  const detectedState = await eciService.resolveState(extracted.state || extracted.city || extracted.address || '');
+  const election = detectedState ? await eciService.getScheduleForState(detectedState) : null;
+  const booth = await eciService.getBoothForConstituency(extracted.constituency || extracted.pollingStation || '');
+
+  return {
+    epic: extracted.epic || null,
+    epicValid: validateVoterIdFormat(extracted.epic || ''),
+    name: extracted.name || null,
+    gender: extracted.gender || null,
+    address: extracted.address || null,
+    pollingStation: extracted.pollingStation || null,
+    pollingStationAddress: extracted.pollingStationAddress || null,
+    constituency: extracted.constituency || null,
+    detectedRegion: detectedState || (extracted.city || extracted.state || null),
+    nearestBooth: booth || extracted.pollingStation || null,
+    election: election,
+    meta: await eciService.getFreshness()
+  };
+}
+
+/**
  * Controller for AI-powered conversational guidance.
  * Grounded in authoritative ECI facts.
  * @param {import('express').Request} req
@@ -216,35 +242,17 @@ const scanVoterID = async (req, res, next) => {
         }
         
         // Validation & Enrichment
-        const extracted = extractedVoterSchema.parse(rawExtracted);
-        
-        const detectedState = await eciService.resolveState(extracted.state || extracted.city || extracted.address || '');
-        const election = detectedState ? await eciService.getScheduleForState(detectedState) : null;
-        const booth = await eciService.getBoothForConstituency(extracted.constituency || extracted.pollingStation || '');
-
-        const enrichedResult = {
-          epic: extracted.epic || null,
-          epicValid: validateVoterIdFormat(extracted.epic || ''),
-          name: extracted.name || null,
-          gender: extracted.gender || null,
-          address: extracted.address || null,
-          pollingStation: extracted.pollingStation || null,
-          pollingStationAddress: extracted.pollingStationAddress || null,
-          constituency: extracted.constituency || null,
-          detectedRegion: detectedState || (extracted.city || extracted.state || null),
-          nearestBooth: booth || extracted.pollingStation || null,
-          election: election,
-          meta: await eciService.getFreshness()
-        };
-
+        const enrichedResult = await enrichVoterData(rawExtracted);
         return res.json({ result: enrichedResult });
 
       } catch (apiError) {
         const err = apiError instanceof Error ? apiError : new Error(String(apiError));
+        // @ts-ignore
+        const isQuotaError = err.status === 429 || err.message.includes('429') || err.message.includes('quota');
         attempts++;
 
-        // FALLBACK TO GROQ VISION: If Gemini hits 429 and we've tried, or if we want high availability
-        if ((err.message.includes('429') || err.message.includes('quota')) && process.env.GROQ_API_KEY) {
+        // FALLBACK TO GROQ VISION: If Gemini hits 429
+        if (isQuotaError && process.env.GROQ_API_KEY) {
           console.warn('[OCR] Gemini quota hit. Attempting Groq Llama-3.2-Vision fallback...');
           try {
             const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -273,45 +281,29 @@ const scanVoterID = async (req, res, next) => {
 
             if (groqResponse.ok) {
               const groqData = await groqResponse.json();
-              const rawExtracted = JSON.parse(groqData.choices[0].message.content);
-              
-              // Proceed with enrichment (reuse logic below)
-              const extracted = extractedVoterSchema.parse(rawExtracted);
-              const detectedState = await eciService.resolveState(extracted.state || extracted.city || extracted.address || '');
-              const election = detectedState ? await eciService.getScheduleForState(detectedState) : null;
-              const booth = await eciService.getBoothForConstituency(extracted.constituency || extracted.pollingStation || '');
-
-              return res.json({ result: {
-                epic: extracted.epic || null,
-                epicValid: validateVoterIdFormat(extracted.epic || ''),
-                name: extracted.name || null,
-                gender: extracted.gender || null,
-                address: extracted.address || null,
-                pollingStation: extracted.pollingStation || null,
-                pollingStationAddress: extracted.pollingStationAddress || null,
-                constituency: extracted.constituency || null,
-                detectedRegion: detectedState || (extracted.city || extracted.state || null),
-                nearestBooth: booth || extracted.pollingStation || null,
-                election: election,
-                meta: await eciService.getFreshness()
-              }});
+              const groqRaw = JSON.parse(groqData.choices[0].message.content);
+              const enriched = await enrichVoterData(groqRaw);
+              return res.json({ result: enriched });
+            } else {
+              const errorText = await groqResponse.text();
+              console.error('[OCR] Groq Fallback failed with status:', groqResponse.status, errorText);
             }
           } catch (groqErr) {
-            console.error('[OCR] Groq Fallback failed:', groqErr);
+            console.error('[OCR] Groq Fallback Exception:', groqErr);
           }
         }
 
-        if ((err.message.includes('429') || err.message.includes('quota')) && attempts < maxAttempts) {
+        if (isQuotaError && attempts < maxAttempts) {
           console.warn(`[OCR] Gemini Rate limit hit. Retrying in ${delay}ms... (Attempt ${attempts}/${maxAttempts})`);
           await new Promise(resolve => setTimeout(resolve, delay));
           delay *= 2;
           continue;
         }
 
-        console.error("Gemini Vision API Error:", err.stack || err.message);
+        console.error("OCR API Error:", err.stack || err.message);
         const status = err.message.includes('GEMINI_API_KEY') ? 500 : 503;
         return res.status(status).json({ 
-          error: err.message.includes('429') 
+          error: isQuotaError 
             ? 'The AI analysis service is busy. Retrying automatically...' 
             : (err.message || 'OCR processing service is unavailable.')
         });
