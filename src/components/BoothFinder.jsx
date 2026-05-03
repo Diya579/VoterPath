@@ -39,11 +39,16 @@ IMPORTANT: Use only native ${targetLang} script. Do NOT romanize. Return only JS
       body: JSON.stringify({ prompt })
     });
     const data = await response.json();
+    if (data.error) {
+      console.warn('Translation service error:', data.error);
+      return booths;
+    }
+
     const text = data.text || '';
     
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) {
-      console.warn('No JSON found in translation response:', text);
+      console.warn('No JSON found in translation response');
       return booths;
     }
     

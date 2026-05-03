@@ -118,15 +118,15 @@ const chatWithGemini = async (req, res, next) => {
       const result = await chat.sendMessage(`${systemInstruction}\n\nUser: ${prompt}`);
       const response = await result.response;
       return res.json({ text: response.text() });
-
     } catch (apiError) {
       const err = apiError instanceof Error ? apiError : new Error(String(apiError));
-      
-      // FALLBACK TO GROQ: If Gemini hits 429 (Rate Limit), switch to Llama 3 on Groq
-      if ((err.message.includes('429') || err.message.includes('quota')) && process.env.GROQ_API_KEY) {
-        console.warn('[Chat] Gemini Quota Exceeded. Falling back to Groq Llama-3-70b...');
+      // @ts-ignore
+      const isQuotaError = err.status === 429 || err.message.includes('429') || err.message.includes('quota');
+
+      // FALLBACK TO GROQ: If Gemini hits 429 (Rate Limit)
+      if (isQuotaError && process.env.GROQ_API_KEY) {
+        console.warn('[Chat] Gemini Quota Exceeded. Falling back to Groq Llama-3.3...');
         try {
-          // Use native fetch (available in Node 18+)
           const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -134,7 +134,7 @@ const chatWithGemini = async (req, res, next) => {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              model: "llama-3.1-70b-versatile",
+              model: "llama-3.3-70b-versatile",
               messages: [
                 { role: "system", content: "You are the VoterPath Expert. Grounded in ECI facts. Answer in the requested language/script." },
                 ...history.map(h => ({ role: h.role === 'model' ? 'assistant' : 'user', content: h.parts[0].text })),
@@ -147,6 +147,9 @@ const chatWithGemini = async (req, res, next) => {
           if (groqResponse.ok) {
             const groqData = await groqResponse.json();
             return res.json({ text: groqData.choices[0].message.content });
+          } else {
+            const errorText = await groqResponse.text();
+            console.error('[Chat] Groq Fallback failed status:', groqResponse.status, errorText);
           }
         } catch (groqErr) {
           console.error('[Chat] Groq Fallback failed:', groqErr);
@@ -155,9 +158,9 @@ const chatWithGemini = async (req, res, next) => {
 
       console.error("Gemini Chat API Error:", err.stack || err.message);
       res.status(503).json({ 
-        error: err.message.includes('429') 
+        error: isQuotaError 
           ? 'Service is heavily loaded. Please try again in a few seconds.' 
-          : 'Election information service is temporarily unavailable.' 
+          : (err.message || 'Election information service is temporarily unavailable.')
       });
     }
   } catch (error) {
