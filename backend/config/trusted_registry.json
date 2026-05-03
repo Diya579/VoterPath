@@ -1,11 +1,11 @@
 {
   "manifest": {
     "hash": "f8f080bfb15f3e19fe49aceda33e7d8a68d2e54865e566cca43e811ec185d6f9",
-    "signature": "SCMqS5uloEha5YO6e1fe3aaPfcOMEUx9MDJkwbpTNAi2GrbjjYnVzDeOMJSLsLehbIako3A1FNFkMDUQYs4nwsi+VpUINSeP3N/k0QV2hjOUkLFTTiwPgOFIZ0qR9sVma4VdP3oucgZCGINP+F4fnjO+hjibWY+P8FVzNq9FVOtb2uCr+Abv1lbL1rm8KJH+hZclbUbvTHrVFFddCGbQZQzktaJs/bs4RA51nYfAi8a0vQmQgKdt4ynWLLAYDqCo6AXGRIzY+H9ztdmwIkzALeNdOMGruA5EhBmJYyfI6quJkyf86+OMEDWwO69KxgH9TuRLA4HzUT2pKQYfhNDMKA==",
-    "lastVerified": "2026-05-03T22:34:45.000Z",
-    "provider": "Election Commission Official Registry",
+    "signature": "Ue86Vcdc5r/YiErlGEyn0zqG0fZwmmyBXjMb7wTF2eDektELcsB+x2YjTv4CftGl34Sgs8oo1XhnZoDUV/02+F0s6dfE4iZT4nMrC6yfAwfqYIgWl13GqjbllJxjs86g7UmcCRV3pt3LJS1Zb8ivebCw0VaymB6wVWIlH4gKT95Opup/TlX5t2cSQhuCzwhYIN/kia6Lt747X/hHMBOXJxJJ/SeyHtbY/oRBMJ7dtBpXgpzsBhIlAEjsfkJfxzw9AKhX4EYL7RQKDs8QlanFdpDZawWI/xe4mZkkAOgArCB6NuUUayaVNZ/c8MH7hhoQRfWKaxcn0Wc5B2z5Nei5hA==",
+    "lastVerified": "2026-05-03T17:17:58.693Z",
+    "provider": "Election Commission Official Registry (TEST_AUTHORITY)",
     "issuerId": "ECI-REGISTRY-V1",
-    "signedAt": "2026-05-01T00:00:00Z",
+    "signedAt": "2026-05-03T17:17:58.694Z",
     "expiresAt": "2027-05-01T00:00:00Z"
   }
 }

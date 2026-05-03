@@ -15,7 +15,7 @@ const app = require('../server');
  * 4. MIME Confusion Attacks
  */
 describe('Adversarial Security & Perimeter Defense', () => {
-  const testToken = 'test-token';
+  const testToken = 'valid-test-token';
   const validOrigin = 'http://localhost:5173';
 
   // --- 1. AUTHENTICATION PERIMETER ---

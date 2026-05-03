@@ -25,7 +25,7 @@ describe('Auth Middleware', () => {
   it('should allow requests with a valid test-token (Mocked)', async () => {
     const response = await request(app)
       .get('/test-auth')
-      .set('Authorization', 'Bearer test-token');
+      .set('Authorization', 'Bearer valid-test-token');
     expect(response.statusCode).toBe(200);
     expect(response.body.success).toBe(true);
   });
