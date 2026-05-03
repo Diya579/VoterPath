@@ -1,57 +1,79 @@
+/**
+ * VoterPath Security Infrastructure
+ * (c) 2024 VoterPath Contributors
+ */
+
 const admin = require('../firebase/admin');
 
 /**
  * STRICT FAIL-CLOSED AUTHENTICATION MIDDLEWARE
  * 
- * Logic:
- * 1. Checks for Authorization: Bearer <token>
- * 2. Verifies token with Firebase Admin SDK.
- * 3. In Production: No bypasses allowed.
- * 4. In Dev/Test: Optional bypass only if ALLOW_TEST_TOKENS is enabled.
+ * This middleware enforces a zero-trust policy for all API endpoints.
+ * 
+ * SECURITY CONTRACT:
+ * 1. REQUIREMENT: All requests must provide a valid 'Authorization: Bearer <ID_TOKEN>' header.
+ * 2. VERIFICATION: Tokens are verified using the Firebase Admin SDK.
+ * 3. FAIL-CLOSED: If the Auth Provider (Firebase) is unreachable or uninitialized, 
+ *    the request is rejected with a 500 error in production.
+ * 4. AUDITABILITY: All security blocks are logged for incident response.
+ * 
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @param {import('express').NextFunction} next - Express next function
  */
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  
+
+  // 1. Structural Check
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     console.error('[Auth] Security Block: Missing or malformed Authorization header.');
-    return res.status(401).json({ error: 'Authentication required. Please sign in to continue.' });
+    return res.status(401).json({
+      error: 'Authentication required. Please sign in to continue.',
+      code: 'auth/missing-header'
+    });
   }
 
   const token = authHeader.split('Bearer ')[1];
 
-  // 1. DEVELOPMENT/TEST BYPASS (Strictly controlled)
-  const isDev = process.env.NODE_ENV !== 'production';
-  const allowTestTokens = process.env.ALLOW_TEST_TOKENS === 'true';
-  
-  if (isDev && allowTestTokens && token === 'test-token') {
-    console.warn('[Auth] Warning: Using insecure test-token bypass.');
-    // @ts-ignore
-    req.user = { uid: 'test-user', email: 'test@voterpath.org', isAnonymous: true };
-    return next();
-  }
-
-  // 2. PRODUCTION VERIFICATION
-  try {
-    // If Firebase Admin failed to initialize, we MUST fail closed in production.
-    if (!admin) {
-      console.error('[Auth] CRITICAL: Firebase Admin not initialized.');
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(500).json({ error: 'Internal Security Error: Auth provider offline.' });
-      }
-      // Fallback for local development without keys
-      throw new Error('Firebase Admin uninitialized');
+  // 2. Provider Integrity Check
+  if (!admin) {
+    console.error('[Auth] CRITICAL: Firebase Admin not initialized. Rejecting request.');
+    
+    // In production, we MUST fail closed if the security provider is offline.
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(500).json({
+        error: 'Internal Security Error: Authentication provider is offline.',
+        code: 'auth/provider-offline'
+      });
     }
 
+    // In development, we still fail but with a clearer error for the developer.
+    return res.status(503).json({
+      error: 'Security Provider (Firebase Admin) not initialized. Check your environment variables.',
+      code: 'auth/uninitialized'
+    });
+  }
+
+  // 3. Cryptographic Verification
+  try {
     const decodedToken = await admin.auth().verifyIdToken(token);
+    
+    // Attach decoded user data to the request object for downstream controllers
     // @ts-ignore
-    req.user = decodedToken;
-    next();
+    req.user = {
+      uid: decodedToken.uid,
+      email: decodedToken.email,
+      isAnonymous: decodedToken.firebase?.sign_in_provider === 'anonymous',
+      claims: decodedToken
+    };
+
+    return next();
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     console.error('[Auth] Token Verification Failed:', err.message);
-    
-    // Explicit 401 for invalid tokens to prevent probe-leaks
-    return res.status(401).json({ 
+
+    // Explicit 401 for invalid tokens to prevent session probing
+    return res.status(401).json({
       error: 'Invalid or expired session. Please sign in again.',
       code: 'auth/invalid-token'
     });

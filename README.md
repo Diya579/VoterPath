@@ -1,74 +1,74 @@
-# VoterPath India: Election Intelligence Platform (2026 Assembly Elections)
+# VoterPath India: Election Guidance Platform (2026 Assembly Elections)
 
 ## 🗳️ Vertical: Civic Tech & Democratic Engagement
-VoterPath India is a technical bridge between election bureaucracy and the electorate. It provides a structured interface for the 2026 Assembly Elections across 5+ states (Tamil Nadu, Kerala, West Bengal, Assam, Puducherry), prioritizing deterministic facts and multi-lingual accessibility.
+VoterPath India is a technical bridge between election procedures and the electorate. It provides a structured interface for the 2026 Assembly Elections across 5+ states (Tamil Nadu, Kerala, West Bengal, Assam, Puducherry), prioritizing **Manifest-Grounded Facts** and multi-lingual accessibility.
 
 ---
 
 ## 🛠️ Approach & Logic
 
-### 1. Deterministic Authority Layer
-Unlike standard LLMs that generate probabilistic answers, VoterPath uses a **Dual-Path Architecture**:
-- **Authoritative Service**: `eciService.js` acts as the single gateway to a curated election manifest (`electionFacts.json`). This ensures that dates, seat counts, and procedures are retrieved deterministically.
-- **Contextual AI**: Gemini 2.0 Flash is used for language translation and natural language understanding, but its responses are programmatically grounded in the facts injected from the Authoritative Service.
+### 1. Manifest-Grounded Architecture
+Unlike standard LLMs that generate probabilistic answers, VoterPath uses a **Two-Tier Truth Model**:
+- **Grounded Fact Service**: `eciService.js` provides exact-match deterministic resolution from a **cryptographically signed local manifest** (`electionFacts.json`). This ensures that dates, seat counts, and procedures are retrieved from a curated, verified dataset.
+- **Contextual AI Explainer**: Gemini 2.0 Flash is used for language translation and simplifying complex procedures, but its reasoning is constrained by a **Pre-AI Intent Router** that injects resolved facts into the model context.
 
-### 2. Multi-Modal Verification (OCR + Logic)
-The platform uses **Gemini Vision AI (Native JSON Mode)** to extract structured data from Voter IDs. This data is then cross-referenced against the Authoritative Service to resolve constituency-specific polling stations and phases, reducing the risk of model hallucination.
+### 2. Multi-Modal Verification (OCR + Semantic Logic)
+The platform uses **Gemini Vision AI (Native JSON Mode)** for structural extraction from Voter IDs. This data undergoes a **Semantic Validation Layer** to verify EPIC formats and cross-reference region data against the signed manifest before enrichment.
 
-### 3. Accessibility & Native Script Mandate
-Recognizing the diverse linguistic landscape, VoterPath enforces a **Native Script Mandate**. The AI is programmatically constrained to respond ONLY in the native script of the selected language (e.g., தமிழ், हिन्दी), ensuring authenticity and trust.
+### 3. Native Script Mandate
+VoterPath enforces a **Native Script Mandate**. The AI is programmatically constrained to respond ONLY in the native script of the selected language (e.g., தமிழ், हिन्दी), ensuring linguistic authenticity.
 
 ---
 
 ## 🚀 Key Features
 
-### A. The Document Extraction Pipeline
-- **Vision Engine**: Uses Gemini 2.0 Flash with `responseMimeType: application/json` for reliable, regex-free extraction.
-- **Enrichment**: Extracted data is automatically enriched with election schedules and booth locations sourced from the `eciService`.
-- **Privacy**: Processing occurs in-memory; PII is never persisted, and raw model logs are sanitized.
+### A. Grounded Document Extraction
+- **Vision Engine**: Uses Gemini 2.0 Flash with `responseMimeType: application/json` for reliable extraction.
+- **Semantic Validation**: Extracted data is cross-referenced against the `eciService` manifest.
+- **Privacy**: Processing occurs in-memory; PII is never persisted.
 
-### B. Intelligent Booth & Procedure Finder
-- **Official Resources**: Deep integration of official ECI video guides and embedded maps for geographic discovery.
-- **Step-by-Step Guidance**: Rules-based flows for Form 6 (Registration) and Form 8 (Correction).
+### B. Deterministic Fact API (v1)
+A rule-based REST API provides non-LLM access to core election data:
+- `GET /api/v1/facts/eligibility`: Rule-based eligibility criteria.
+- `GET /api/v1/facts/schedules`: Deterministic election dates by state.
+- `GET /api/v1/facts/steps`: Static registration and correction procedures.
 
 ---
 
 ## 🏗️ Technical Architecture
 - **Frontend**: React 19, Tailwind CSS v4, i18next (15 Localized Scripts).
-- **Backend**: Node.js/Express with strict CommonJS modules.
-- **AI Stack**: Google Gemini 2.0 Flash SDK (Vision & Chat).
-- **Security**: Firebase Admin (Token Verification), Helmet (Strict CSP), Zod (Request Validation).
+- **Backend**: Node.js/Express, CommonJS (Standard Formatting).
+- **Security**: 
+  - **Hardened Auth**: Strict fail-closed middleware with 100% token verification.
+  - **Manifest Integrity**: RSA-SHA256 signature verification with public-key fingerprint pinning.
+  - **Payload Defense**: Magic-number validation for image uploads.
 
 ---
 
-## 📝 Documented Rules
+## 📝 Grounding Rules
 1. **Qualifying Date**: January 1, 2026.
-2. **Authority**: All facts sourced from `backend/data/electionFacts.json` via `eciService`.
-3. **MIME Validation**: Strict allowlisting for JPEG, PNG, and WEBP.
+2. **Fact Source**: Curated manifest (`electionFacts.json`) verified via `trusted_registry.json`.
+3. **MIME Validation**: Strict magic-number checking for JPEG, PNG, and WEBP.
 
 ---
 
----
-
-## ⚖️ Security & Reliability (Strict Fail-Closed)
-- **Authoritative Auth**: Middleware strictly rejects ALL unauthenticated requests in production. Anonymous Firebase tokens are required for all API interactions (`verifyToken`).
-- **Adversarial Defense**: Multilayered prompt neutralization and sanitize-checks block semantic jailbreaks and structural injection.
-- **Error Transparency**: Production-safe error handling prevents stack leakage.
-- **CORS Management**: Environment-driven origin allowlisting via `ALLOWED_ORIGINS`.
+## ⚖️ Security & Reliability (Fail-Closed)
+- **Zero-Trust Auth**: All routes require a valid Firebase ID Token. No bypasses exist in the production runtime.
+- **Deterministic Fallback**: High-availability pipeline with automatic fallback to Groq Llama 3.3 for explanatory text, using the same pre-resolved fact packets as Gemini.
+- **Error Differentiating**: Distinct handling for 401 (Auth), 422 (Extraction Failure), 503 (Service Busy), and 500 (Internal).
 
 ---
 
-## 🏆 Production Standards
+## 🏆 Quality Standards
 
-### 1. Code Quality & Authority
-- **ECI Authoritative Gateway**: `eciService.js` provides exact-match deterministic resolution for election facts, featuring integrity hashing and simulated remote source fetching.
-- **Multi-Model Fallback**: High-availability pipeline with automatic fallback to Groq Llama 4 Scout if Gemini quotas are exceeded.
+### 1. Truthful Provenance
+The platform clearly labels all data sources. Matches found in the signed manifest are labeled as `MANIFEST_EXACT_MATCH`, while AI-only extractions are marked as `EXTRACTION_ONLY`.
 
-### 2. Accessibility (A11y Proof)
-- **Verified Compliance**: Inspected test suite (`src/__tests__/Accessibility.test.jsx`) verifies WCAG 2.1 landmark navigation, ARIA roles, and screen-reader compatibility.
-- **Keyboard Native**: Logical focus order and keyboard support for all interactive zones.
+### 2. Accessibility
+- **WCAG 2.1 Focus**: Screen-reader landmarks, ARIA live regions for status updates, and full keyboard focus traps.
+- **Language Coverage**: 15+ Indian languages supported with native script rendering.
 
-### 3. Testing (Inspected Proof)
-- **Adversarial Suite**: `backend/tests/adversarial.test.js` verifies fail-closed auth, DoS protection, and MIME enforcement.
-- **Integration Suite**: `backend/tests/api.test.js` covers schema validation and fallback reliability.
-- **Unit Suite**: Comprehensive coverage of election logic and data seeder idempotency.
+### 3. Testing
+- **Security Suite**: `backend/tests/security.test.js` (Auth, MIME, DoS).
+- **API Suite**: `backend/tests/api.test.js` (Schema, Fallback).
+- **Fact Suite**: `backend/tests/eciService.test.js` (Signature, Hash, Expiry).

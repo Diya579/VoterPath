@@ -25,6 +25,8 @@ const upload = multer({
   }
 });
 
+const { getEligibility, getSchedules, getRegistrationSteps } = require('../controllers/factsController');
+
 /**
  * @route POST /api/chat
  * @desc AI-powered election guidance grounded in authoritative facts.
@@ -36,5 +38,12 @@ router.post('/chat', chatWithGemini);
  * @desc OCR extraction from Voter ID cards with fact-base enrichment.
  */
 router.post('/scan', upload.single('image'), scanVoterID);
+
+/**
+ * DETERMINISTIC FACT ROUTES (v1)
+ */
+router.get('/v1/facts/eligibility', getEligibility);
+router.get('/v1/facts/schedules', getSchedules);
+router.get('/v1/facts/steps', getRegistrationSteps);
 
 module.exports = router;
