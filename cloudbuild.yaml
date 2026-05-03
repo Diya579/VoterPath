@@ -17,7 +17,7 @@ steps:
   - 'VITE_FIREBASE_APP_ID=${_VITE_FIREBASE_APP_ID}'
   - 'VITE_FIREBASE_MEASUREMENT_ID=${_VITE_FIREBASE_MEASUREMENT_ID}'
 
-# Step 3: Build and Push Docker Image
+# Step 3: Build Docker Image
 - name: 'gcr.io/cloud-builders/docker'
   args: [
     'build',
@@ -32,7 +32,11 @@ steps:
     '.'
   ]
 
-# Step 4: Deploy to Cloud Run
+# Step 4: Push Docker Image (Explicitly needed before deployment step)
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/voterpath']
+
+# Step 5: Deploy to Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'gcloud'
   args: [
