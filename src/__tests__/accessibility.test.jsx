@@ -36,7 +36,8 @@ describe('Production Accessibility Audit (WCAG 2.1)', () => {
   it('LanguageSelector has correct semantic structure for screen readers', () => {
     renderWithProviders(<LanguageSelector onSelect={() => {}} />);
     expect(screen.getByRole('dialog')).toBeDefined();
-    expect(screen.getByRole('heading', { level: 2 })).toBeDefined();
+    // It uses h1 for the main title
+    expect(screen.getByRole('heading', { level: 1 })).toBeDefined();
     const langButtons = screen.getAllByRole('button');
     expect(langButtons.length).toBeGreaterThan(0);
   });
@@ -46,7 +47,9 @@ describe('Production Accessibility Audit (WCAG 2.1)', () => {
     const statusRegion = document.querySelector('[aria-live="polite"]');
     expect(statusRegion).toBeDefined();
     expect(screen.getByRole('heading', { level: 2 })).toBeDefined();
-    const uploadInput = screen.getByLabelText(/upload/i);
+    
+    // Use a more specific query for the upload input to avoid ambiguity with the label/region
+    const uploadInput = screen.getByLabelText(/Upload Voter ID Card/i);
     expect(uploadInput).toBeDefined();
   });
 });

@@ -9,10 +9,17 @@ app.use(express.json());
 app.get('/test-auth', verifyToken, (req, res) => res.json({ success: true }));
 
 describe('Auth Middleware', () => {
-  it('should allow requests from authorized origins when no token is provided', async () => {
+  it('should reject requests from authorized origins if no token is provided (Fail-Closed)', async () => {
     const response = await request(app)
       .get('/test-auth')
       .set('Origin', 'http://localhost:5173');
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('should allow requests with a valid test-token in development', async () => {
+    const response = await request(app)
+      .get('/test-auth')
+      .set('Authorization', 'Bearer test-token');
     expect(response.statusCode).toBe(200);
     expect(response.body.success).toBe(true);
   });

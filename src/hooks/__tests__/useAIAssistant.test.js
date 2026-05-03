@@ -2,6 +2,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useAIAssistant } from '../useAIAssistant';
 
+// Mock Firebase config
+vi.mock('../../firebase/config', () => ({
+  auth: {
+    currentUser: {
+      getIdToken: vi.fn().mockResolvedValue('test-token')
+    }
+  }
+}));
+
+// Mock Firebase auth for signInAnonymously fallback
+vi.mock('firebase/auth', () => ({
+  signInAnonymously: vi.fn().mockResolvedValue({
+    user: {
+      getIdToken: vi.fn().mockResolvedValue('test-token-anon')
+    }
+  })
+}));
+
 describe('useAIAssistant', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
