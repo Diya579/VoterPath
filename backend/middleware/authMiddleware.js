@@ -61,6 +61,12 @@ const verifyToken = async (req, res, next) => {
         'http://localhost:5173',
         'https://voterpath-776684989084.us-central1.run.app'
       ];
+  
+  // Allow requests with no origin/referer (same-site or direct internal calls)
+  if (!origin) {
+    return next();
+  }
+
   const isAllowedOrigin = allowedList.some(o => origin && origin.startsWith(o));
 
   if (isAllowedOrigin) {

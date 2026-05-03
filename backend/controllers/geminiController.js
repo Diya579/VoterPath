@@ -243,7 +243,64 @@ const scanVoterID = async (req, res, next) => {
         const err = apiError instanceof Error ? apiError : new Error(String(apiError));
         attempts++;
 
-        // Retry on 429/Quota
+        // FALLBACK TO GROQ VISION: If Gemini hits 429 and we've tried, or if we want high availability
+        if ((err.message.includes('429') || err.message.includes('quota')) && process.env.GROQ_API_KEY) {
+          console.warn('[OCR] Gemini quota hit. Attempting Groq Llama-3.2-Vision fallback...');
+          try {
+            const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                model: "llama-3.2-11b-vision-preview",
+                messages: [
+                  {
+                    role: "user",
+                    content: [
+                      { type: "text", text: promptText },
+                      {
+                        type: "image_url",
+                        image_url: { url: `data:${req.file.mimetype};base64,${base64Data}` }
+                      }
+                    ]
+                  }
+                ],
+                response_format: { type: "json_object" }
+              })
+            });
+
+            if (groqResponse.ok) {
+              const groqData = await groqResponse.json();
+              const rawExtracted = JSON.parse(groqData.choices[0].message.content);
+              
+              // Proceed with enrichment (reuse logic below)
+              const extracted = extractedVoterSchema.parse(rawExtracted);
+              const detectedState = await eciService.resolveState(extracted.state || extracted.city || extracted.address || '');
+              const election = detectedState ? await eciService.getScheduleForState(detectedState) : null;
+              const booth = await eciService.getBoothForConstituency(extracted.constituency || extracted.pollingStation || '');
+
+              return res.json({ result: {
+                epic: extracted.epic || null,
+                epicValid: validateVoterIdFormat(extracted.epic || ''),
+                name: extracted.name || null,
+                gender: extracted.gender || null,
+                address: extracted.address || null,
+                pollingStation: extracted.pollingStation || null,
+                pollingStationAddress: extracted.pollingStationAddress || null,
+                constituency: extracted.constituency || null,
+                detectedRegion: detectedState || (extracted.city || extracted.state || null),
+                nearestBooth: booth || extracted.pollingStation || null,
+                election: election,
+                meta: await eciService.getFreshness()
+              }});
+            }
+          } catch (groqErr) {
+            console.error('[OCR] Groq Fallback failed:', groqErr);
+          }
+        }
+
         if ((err.message.includes('429') || err.message.includes('quota')) && attempts < maxAttempts) {
           console.warn(`[OCR] Gemini Rate limit hit. Retrying in ${delay}ms... (Attempt ${attempts}/${maxAttempts})`);
           await new Promise(resolve => setTimeout(resolve, delay));
