@@ -39,9 +39,10 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://www.googletagmanager.com"],
-      connectSrc: ["'self'", "https://*.googleapis.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https://firebasestorage.googleapis.com"],
+      scriptSrc: ["'self'", "https://www.googletagmanager.com", "'unsafe-inline'"],
+      connectSrc: ["'self'", "https://*.googleapis.com", "https://www.google-analytics.com", "https://www.google.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https://firebasestorage.googleapis.com", "https://*.google-analytics.com", "https://*.googletagmanager.com"],
+      frameSrc: ["'self'", "https://www.youtube.com", "https://www.youtube-nocookie.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },
