@@ -1,8 +1,8 @@
 {
   "manifest": {
-    "hash": "8f1d2a8b095ce7ed7dd260baa3ab597c739cc53359f926631d7887369ffb91f4",
+    "hash": "f8f080bfb15f3e19fe49aceda33e7d8a68d2e54865e566cca43e811ec185d6f9",
     "signature": "SCMqS5uloEha5YO6e1fe3aaPfcOMEUx9MDJkwbpTNAi2GrbjjYnVzDeOMJSLsLehbIako3A1FNFkMDUQYs4nwsi+VpUINSeP3N/k0QV2hjOUkLFTTiwPgOFIZ0qR9sVma4VdP3oucgZCGINP+F4fnjO+hjibWY+P8FVzNq9FVOtb2uCr+Abv1lbL1rm8KJH+hZclbUbvTHrVFFddCGbQZQzktaJs/bs4RA51nYfAi8a0vQmQgKdt4ynWLLAYDqCo6AXGRIzY+H9ztdmwIkzALeNdOMGruA5EhBmJYyfI6quJkyf86+OMEDWwO69KxgH9TuRLA4HzUT2pKQYfhNDMKA==",
-    "lastVerified": "2026-05-03T14:52:46.620Z",
+    "lastVerified": "2026-05-03T22:34:45.000Z",
     "provider": "Election Commission Official Registry",
     "issuerId": "ECI-REGISTRY-V1",
     "signedAt": "2026-05-01T00:00:00Z",

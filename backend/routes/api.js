@@ -1,49 +1,77 @@
+/**
+ * VoterPath API Router Architecture
+ * (c) 2024 VoterPath Contributors
+ */
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+
+// Controller Imports
 const { chatWithGemini, scanVoterID } = require('../controllers/geminiController');
+const { getEligibility, getSchedules, getRegistrationSteps } = require('../controllers/factsController');
+
+// Middleware Imports
 const { verifyToken } = require('../middleware/authMiddleware');
 
 /**
- * VOTERPATH SECURE API ROUTES
+ * GLOBAL SECURITY PERIMETER
  * 
- * All routes are protected by the strict fail-closed authentication middleware.
- * Request rate-limiting is applied at the server level.
+ * Logic:
+ * All API routes are protected by a strict fail-closed identity gateway.
+ * Requests must include a verified Firebase ID Token.
  */
-
-// 1. GLOBAL SECURITY GATEWAY
-// Verifies Firebase ID Tokens for all downstream requests.
 router.use(verifyToken);
 
-// 2. FILE UPLOAD CONFIGURATION
-// Uses memory storage for transient processing to prevent data persistence on disk.
+/**
+ * FILE UPLOAD CONFIGURATION (Transient Memory Storage)
+ */
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { 
-    fileSize: 2 * 1024 * 1024, // 2MB Limit per file
-    files: 1 // Only one file per request
+    fileSize: 2 * 1024 * 1024, // 2MB Security Limit
+    files: 1 
   }
 });
 
-const { getEligibility, getSchedules, getRegistrationSteps } = require('../controllers/factsController');
+/**
+ * AI & MULTIMODAL ROUTES
+ */
 
 /**
  * @route POST /api/chat
- * @desc AI-powered election guidance grounded in authoritative facts.
+ * @desc Deterministically grounded AI guidance.
  */
 router.post('/chat', chatWithGemini);
 
 /**
  * @route POST /api/scan
- * @desc OCR extraction from Voter ID cards with fact-base enrichment.
+ * @desc Vision-assisted extraction with semantic cross-validation.
  */
 router.post('/scan', upload.single('image'), scanVoterID);
 
 /**
- * DETERMINISTIC FACT ROUTES (v1)
+ * DETERMINISTIC CIVIC DATA ROUTES (v1)
+ * 
+ * These routes provide non-LLM, rule-based access to the authoritative manifest.
+ */
+
+/**
+ * @route GET /api/v1/facts/eligibility
+ * @desc Returns grounded voter eligibility rules.
  */
 router.get('/v1/facts/eligibility', getEligibility);
+
+/**
+ * @route GET /api/v1/facts/schedules
+ * @desc Returns verified election timelines by state.
+ */
 router.get('/v1/facts/schedules', getSchedules);
+
+/**
+ * @route GET /api/v1/facts/steps
+ * @desc Returns official registration and correction procedures.
+ */
 router.get('/v1/facts/steps', getRegistrationSteps);
 
 module.exports = router;

@@ -6,6 +6,9 @@
 jest.mock('../firebase/admin', () => {
   return {
     auth: () => ({
+      /**
+       * @param {string} token
+       */
       verifyIdToken: async (token) => {
         if (token === 'test-token') {
           return {

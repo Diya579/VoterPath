@@ -1,7 +1,25 @@
 {
-  "version": "4.2.0-authoritative",
-  "lastUpdated": "2026-05-01T00:00:00Z",
+  "version": "4.3.0-production",
+  "lastUpdated": "2026-05-03T00:00:00Z",
   "provider": "Election Commission of India (ECI) Official Dataset",
+  "eligibility": {
+    "ageLimit": 18,
+    "nationality": "Indian",
+    "residenceRequirement": "Ordinary resident of the constituency",
+    "qualifyingDate": "January 1, 2026"
+  },
+  "entityAliases": {
+    "tn": "Tamil Nadu",
+    "tamul nadu": "Tamil Nadu",
+    "guj": "Gujarat",
+    "mh": "Maharashtra",
+    "mah": "Maharashtra",
+    "bom": "Maharashtra",
+    "up": "Uttar Pradesh",
+    "wb": "West Bengal",
+    "kar": "Karnataka",
+    "bangalore": "Karnataka"
+  },
   "regionToState": {
     "Chennai": "Tamil Nadu",
     "Madurai": "Tamil Nadu",
@@ -48,5 +66,12 @@
     "Anna Nagar": "CSI Jessie Moses Matriculation School",
     "Sabarmati": "Government Polytechnic, Ahmedabad",
     "Worli": "Podar International School, Worli Sea Face"
+  },
+  "constituencyStateMap": {
+    "Alandur": "Tamil Nadu",
+    "Velachery": "Tamil Nadu",
+    "Anna Nagar": "Tamil Nadu",
+    "Sabarmati": "Gujarat",
+    "Worli": "Maharashtra"
   }
 }

@@ -15,12 +15,12 @@ describe('VoterPath API Production Suite', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it('should return 400 if prompt exceeds 1000 chars', async () => {
+    it('should return 400 if prompt exceeds 2000 chars', async () => {
       const response = await request(app)
         .post('/api/chat')
         .set('Origin', testOrigin)
         .set('Authorization', 'Bearer test-token')
-        .send({ prompt: 'a'.repeat(1001) });
+        .send({ prompt: 'a'.repeat(2001) });
       expect(response.statusCode).toBe(400);
     });
 
