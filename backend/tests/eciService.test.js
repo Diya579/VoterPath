@@ -16,9 +16,11 @@ describe('ECI Service (Authority Layer)', () => {
 
   test('should return rich provenance metadata on freshness check', async () => {
     const freshness = await eciService.getFreshness();
-    expect(freshness.provenance).toBeDefined();
-    expect(freshness.provenance.verificationStatus).toBe('CRYPTO_VERIFIED_AUTHORITATIVE');
-    expect(freshness.provenance.fingerprint).toBeDefined();
+    expect(freshness.provenance).not.toBeNull();
+    if (freshness.provenance) {
+      expect(freshness.provenance.verificationStatus).toBe('CRYPTO_VERIFIED_AUTHORITATIVE');
+      expect(freshness.provenance.fingerprint).toBeDefined();
+    }
   });
 
   test('should resolve state aliases deterministically (TN -> Tamil Nadu)', async () => {

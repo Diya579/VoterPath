@@ -5,7 +5,9 @@
 
 const express = require('express');
 const cors = require('cors');
+// @ts-ignore
 const helmet = require('helmet');
+// @ts-ignore
 const rateLimit = require('express-rate-limit');
 const apiRoutes = require('./routes/api');
 const path = require('path');
@@ -26,6 +28,7 @@ const PORT = process.env.PORT || 8080;
  */
 
 // 1. Content Security Policy (CSP) & Header Hardening
+// @ts-ignore
 app.use(helmet({
   hsts: { 
     maxAge: 31536000, 
@@ -58,6 +61,7 @@ app.use(helmet({
 }));
 
 // 2. Global Rate Limiting (DDoS Protection)
+// @ts-ignore
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 Minutes
   max: 100, // Limit each IP to 100 requests per window
@@ -65,6 +69,7 @@ const globalLimiter = rateLimit({
 });
 
 // 3. Sensitive Endpoint Throttling (AI Cost & Abuse Control)
+// @ts-ignore
 const aiEndpointLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 Minute
   max: 10, // 10 Requests per minute
@@ -88,6 +93,10 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   : ['http://localhost:5173'];
 
 const corsOptions = {
+  /**
+   * @param {string | undefined} origin
+   * @param {Function} callback
+   */
   origin: (origin, callback) => {
     // Allow same-origin or mobile requests (no origin)
     if (!origin) return callback(null, true);
@@ -122,6 +131,12 @@ if (process.env.NODE_ENV === 'production') {
 
 /**
  * STRUCTURED ERROR ORCHESTRATION
+ */
+/**
+ * @param {any} err
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 app.use((err, req, res, next) => {
   const isProd = process.env.NODE_ENV === 'production';

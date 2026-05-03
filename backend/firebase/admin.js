@@ -36,7 +36,8 @@ try {
       try {
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
         credential = admin.credential.cert(serviceAccount);
-      } catch (jsonErr) {
+      } catch (error) {
+        const jsonErr = error instanceof Error ? error : new Error(String(error));
         console.error('[Firebase] Malformed FIREBASE_SERVICE_ACCOUNT JSON:', jsonErr.message);
       }
     }
