@@ -1,32 +1,13 @@
-const admin = require('firebase-admin');
-
-// Firebase Admin SDK for Backend Token Verification
-let firebaseInitialized = false;
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
-    firebaseInitialized = true;
-  } catch (e) {
-    const err = e instanceof Error ? e : new Error(String(e));
-    console.error('[Auth] Failed to initialize Firebase Admin:', err.message);
-  }
-}
+const admin = require('../firebase/admin');
 
 /**
- * @typedef {import('express').Request & { user?: any }} AuthenticatedRequest
- */
-
-/**
- * Token verification middleware.
- * STRICT FAIL-CLOSED POLICY: Every request MUST have a valid token.
- * Origin checks are handled separately by CORS; they are not an auth bypass.
+ * STRICT FAIL-CLOSED AUTHENTICATION MIDDLEWARE
  * 
- * @param {AuthenticatedRequest} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
+ * Logic:
+ * 1. Checks for Authorization: Bearer <token>
+ * 2. Verifies token with Firebase Admin SDK.
+ * 3. In Production: No bypasses allowed.
+ * 4. In Dev/Test: Optional bypass only if ALLOW_TEST_TOKENS is enabled.
  */
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -36,32 +17,45 @@ const verifyToken = async (req, res, next) => {
     return res.status(401).json({ error: 'Authentication required. Please sign in to continue.' });
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.split('Bearer ')[1];
 
-  if (!firebaseInitialized) {
-    // In production, if Firebase Admin is not initialized, we CANNOT verify tokens.
-    // We fail-closed to prevent unauthorized access.
-    if (process.env.NODE_ENV === 'production') {
-      console.error('[Auth] Critical: Firebase Admin not initialized in production. Failing closed.');
-      return res.status(500).json({ error: 'Internal Security Error: Authentication service unavailable.' });
-    }
-    
-    // In development, we allow a "test-token" if env is not set up
-    if (process.env.NODE_ENV !== 'production' && token === 'test-token') {
-      req.user = { uid: 'dev-user', anonymous: true };
-      return next();
-    }
+  // 1. DEVELOPMENT/TEST BYPASS (Strictly controlled)
+  const isDev = process.env.NODE_ENV !== 'production';
+  const allowTestTokens = process.env.ALLOW_TEST_TOKENS === 'true';
+  
+  if (isDev && allowTestTokens && token === 'test-token') {
+    console.warn('[Auth] Warning: Using insecure test-token bypass.');
+    // @ts-ignore
+    req.user = { uid: 'test-user', email: 'test@voterpath.org', isAnonymous: true };
+    return next();
   }
 
+  // 2. PRODUCTION VERIFICATION
   try {
+    // If Firebase Admin failed to initialize, we MUST fail closed in production.
+    if (!admin) {
+      console.error('[Auth] CRITICAL: Firebase Admin not initialized.');
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({ error: 'Internal Security Error: Auth provider offline.' });
+      }
+      // Fallback for local development without keys
+      throw new Error('Firebase Admin uninitialized');
+    }
+
     const decodedToken = await admin.auth().verifyIdToken(token);
+    // @ts-ignore
     req.user = decodedToken;
-    return next();
+    next();
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    console.error('[Auth] Token verification failed:', err.message);
-    return res.status(401).json({ error: 'Unauthorized: Invalid or expired token.' });
+    console.error('[Auth] Token Verification Failed:', err.message);
+    
+    // Explicit 401 for invalid tokens to prevent probe-leaks
+    return res.status(401).json({ 
+      error: 'Invalid or expired session. Please sign in again.',
+      code: 'auth/invalid-token'
+    });
   }
 };
 
-module.exports = verifyToken;
+module.exports = { verifyToken };

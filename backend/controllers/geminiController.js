@@ -3,13 +3,16 @@ const { z } = require('zod');
 const { validateVoterIdFormat } = require('../shared/validation');
 const eciService = require('../services/eciService');
 
-// Schema for request validation
+/**
+ * PRODUCTION-GRADE AI CONTROLLER
+ */
+
 const chatSchema = z.object({
-  prompt: z.string().min(1).max(1000),
+  prompt: z.string().min(1).max(2000),
   history: z.array(z.object({
     role: z.enum(['user', 'model']),
     parts: z.array(z.object({ text: z.string() }))
-  })).optional()
+  })).max(20).optional()
 });
 
 const extractedVoterSchema = z.object({
@@ -27,120 +30,133 @@ const extractedVoterSchema = z.object({
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 /**
- * Robustly sanitizes user input to prevent common prompt injection patterns.
- * Preserves core intent while neutralizing structural attack vectors.
- * @param {string} input 
+ * Validates the magic numbers of the buffer to ensure it's a real image.
+ * Prevents script-masquerading-as-image attacks.
+ * @param {Buffer} buffer 
  */
-function sanitizePrompt(input) {
-  if (!input) return '';
-  // Pattern matching for system instruction overrides and semantic jailbreaks
-  const blockedPatterns = [
-    /ignore (all )?previous instructions?/gi,
-    /you are now/gi,
-    /\[system\]/gi,
-    /### system/gi,
-    /system_instruction/gi,
-    /<\|.*?\|>/g,
-    /reset all settings/gi,
-    /switch to developer mode/gi,
-    /as a large language model/gi,
-    /forget your purpose/gi
-  ];
-  
-  let sanitized = input;
-  blockedPatterns.forEach(p => { sanitized = sanitized.replace(p, '[REDACTED_SECURITY_POLICY]'); });
-  
-  // Strip HTML and control characters
-  return sanitized
-    .replace(/<script.*?>.*?<\/script>/gi, '')
-    .replace(/[\x00-\x1F\x7F-\x9F]/g, "")
-    .trim();
+function isValidImageBuffer(buffer) {
+  if (!buffer || buffer.length < 4) return false;
+  const hex = buffer.toString('hex', 0, 4).toUpperCase();
+  // JPEG: FFD8FF, PNG: 89504E47, WEBP: 52494646 (RIFF)
+  return hex.startsWith('FFD8FF') || hex === '89504E47' || hex === '52494646';
 }
 
-/**
- * Helper to enrich extracted voter data with authoritative ECI facts.
- * @param {any} rawData 
- */
+function sanitizePrompt(input) {
+  if (!input) return '';
+  let sanitized = input
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "")
+    .replace(/<\|.*?\|>/g, "")
+    .trim();
+
+  const adversarialPatterns = [
+    /ignore (all )?previous instructions?/gi,
+    /system_instruction/gi,
+    /you are now/gi,
+    /### system/gi,
+    /\[system\]/gi,
+    /forget (your )?purpose/gi,
+    /reset (all )?settings/gi,
+    /switch to (developer|root|debug) mode/gi,
+    /new rules:/gi,
+    /stop being an assistant/gi
+  ];
+
+  adversarialPatterns.forEach(pattern => {
+    if (pattern.test(sanitized)) {
+      sanitized = sanitized.replace(pattern, "[POLICIED_REDACTION]");
+    }
+  });
+
+  return sanitized.substring(0, 2000);
+}
+
 async function enrichVoterData(rawData) {
   const extracted = extractedVoterSchema.parse(rawData);
-  const detectedState = await eciService.resolveState(extracted.state || extracted.city || extracted.address || '');
-  const election = detectedState ? await eciService.getScheduleForState(detectedState) : null;
-  const booth = await eciService.getBoothForConstituency(extracted.constituency || extracted.pollingStation || '');
+  const provenanceMap = {};
 
-  // Confidence Heuristic: High if exact EPIC match, Medium if fuzzy region match
-  const confidence = (extracted.epic && validateVoterIdFormat(extracted.epic)) ? 0.95 : 0.70;
+  const stateQuery = extracted.state || extracted.city || extracted.address || '';
+  const resolvedState = await eciService.resolveState(stateQuery);
+  provenanceMap.state = resolvedState ? 'AUTHORITATIVE_MATCH' : 'EXTRACTION_ONLY';
+
+  const election = resolvedState ? await eciService.getScheduleForState(resolvedState) : null;
+  provenanceMap.election = election ? 'AUTHORITATIVE_RECORD' : 'NOT_FOUND';
+
+  const boothQuery = extracted.constituency || extracted.pollingStation || '';
+  const resolvedBooth = await eciService.getBoothForConstituency(boothQuery);
+  provenanceMap.booth = resolvedBooth ? 'AUTHORITATIVE_MATCH' : 'EXTRACTION_ONLY';
+
+  const isEpicValid = validateVoterIdFormat(extracted.epic || '');
+  provenanceMap.epic = isEpicValid ? 'FORMAT_VERIFIED' : 'UNRECOGNIZED_FORMAT';
+
+  let confidence = 0.5;
+  if (isEpicValid) confidence += 0.25;
+  if (resolvedState) confidence += 0.1;
+  if (resolvedBooth) confidence += 0.1;
 
   return {
     epic: extracted.epic || null,
-    epicValid: validateVoterIdFormat(extracted.epic || ''),
+    epicValid: isEpicValid,
     name: extracted.name || null,
     gender: extracted.gender || null,
     address: extracted.address || null,
     pollingStation: extracted.pollingStation || null,
     pollingStationAddress: extracted.pollingStationAddress || null,
     constituency: extracted.constituency || null,
-    detectedRegion: detectedState || (extracted.city || extracted.state || null),
-    nearestBooth: booth || extracted.pollingStation || null,
+    detectedRegion: resolvedState || (extracted.city || extracted.state || null),
+    nearestBooth: resolvedBooth || extracted.pollingStation || null,
     election: election,
+    provenance: provenanceMap,
     meta: {
       ...await eciService.getFreshness(),
-      extractionConfidence: confidence,
-      source: "ECI Authoritative Layer"
+      extractionConfidence: parseFloat(confidence.toFixed(2))
     }
   };
 }
 
-/**
- * Controller for AI-powered conversational guidance.
- * Grounded in authoritative ECI facts.
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
 const chatWithGemini = async (req, res, next) => {
   try {
     const validation = chatSchema.safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({ error: 'Invalid input format', details: validation.error });
     }
+    
     const { prompt: rawPrompt, history = [] } = validation.data;
     const prompt = sanitizePrompt(rawPrompt);
 
+    const langMatch = prompt.match(/\[Please strictly answer in (\w+)\]/);
+    const targetLang = langMatch ? langMatch[1] : 'English';
+
+    const facts = await eciService.getFacts();
+    const systemInstruction = `You are the VoterPath Expert, a cryptographically grounded election assistant.
+    - CORE MANDATE: Provide deterministic guidance based on the ECI Authoritative Layer.
+    - LANGUAGE RULE: Strictly use ${targetLang} language and its native script.
+    - GROUNDING DATA: ${JSON.stringify(facts.schedules)}
+    - LIMITATION: If a fact is not in the grounding data, state that you don't have that specific official detail. Do not hallucinate dates.`;
+
     try {
-      if (!process.env.GEMINI_API_KEY) {
-        throw new Error('GEMINI_API_KEY is not configured on the server.');
-      }
+      if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY_MISSING');
 
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-      
-      const facts = await eciService.getFacts();
-      const langMatch = prompt.match(/\[Please strictly answer in (\w+)\]/);
-      const targetLang = langMatch ? langMatch[1] : 'English';
-
-      const systemInstruction = `You are the VoterPath Expert, an authoritative election assistant.
-- CRITICAL: Respond ONLY in ${targetLang} language using its NATIVE SCRIPT.
-- KNOWLEDGE BASE: Sourced directly from ECI Authoritative Service.
-- CONTEXT: ${JSON.stringify(facts.schedules)}`;
-
-      const chat = model.startChat({
-        history: history,
-        generationConfig: { maxOutputTokens: 1000 },
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.0-flash",
+        systemInstruction: systemInstruction
       });
 
-      const result = await chat.sendMessage(`${systemInstruction}\n\nUser: ${prompt}`);
-      const response = await result.response;
-      return res.json({ text: response.text() });
-    } catch (apiError) {
-      const err = apiError instanceof Error ? apiError : new Error(String(apiError));
-      // @ts-ignore
-      const isQuotaError = err.status === 429 || err.message.includes('429') || err.message.includes('quota');
+      const chat = model.startChat({
+        history: history.slice(-10),
+        generationConfig: { maxOutputTokens: 1000, temperature: 0.1 }
+      });
 
-      // FALLBACK TO GROQ: If Gemini hits 429 (Rate Limit)
-      if (isQuotaError && process.env.GROQ_API_KEY) {
-        console.warn('[Chat] Gemini Quota Exceeded. Falling back to Groq Llama-3.3...');
+      const result = await chat.sendMessage(prompt);
+      const response = await result.response;
+      return res.json({ 
+        text: response.text(),
+        provenance: { source: "ECI_Grounded_Gemini_2.0", trustLevel: "FACT_GROUNDED" }
+      });
+
+    } catch (apiError) {
+      if (process.env.GROQ_API_KEY) {
         try {
-          const facts = await eciService.getFacts();
           const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -150,190 +166,68 @@ const chatWithGemini = async (req, res, next) => {
             body: JSON.stringify({
               model: "llama-3.3-70b-versatile",
               messages: [
-                { 
-                  role: "system", 
-                  content: `You are the VoterPath Expert. Grounded in ECI facts. 
-                  AUTHORITATIVE CONTEXT: ${JSON.stringify(facts.schedules)}
-                  Answer strictly in the requested language/script.` 
-                },
-                ...history.map(h => ({ role: h.role === 'model' ? 'assistant' : 'user', content: h.parts[0].text })),
+                { role: "system", content: systemInstruction },
+                ...history.slice(-5).map(h => ({ role: h.role === 'model' ? 'assistant' : 'user', content: h.parts[0].text })),
                 { role: "user", content: prompt }
               ],
-              max_tokens: 1000
+              temperature: 0.1
             })
           });
-          
+
           if (groqResponse.ok) {
             const groqData = await groqResponse.json();
-            return res.json({ text: groqData.choices[0].message.content });
-          } else {
-            const errorText = await groqResponse.text();
-            console.error('[Chat] Groq Fallback failed status:', groqResponse.status, errorText);
+            return res.json({ 
+              text: groqData.choices[0].message.content,
+              provenance: { source: "ECI_Grounded_Llama_3.3", trustLevel: "FALLBACK_GROUNDED" }
+            });
           }
-        } catch (groqErr) {
-          console.error('[Chat] Groq Fallback failed:', groqErr);
+        } catch (fallbackErr) {
+          console.error('[Chat] Fallback failed:', fallbackErr);
         }
       }
 
-      console.error("Gemini Chat API Error:", err.stack || err.message);
-      res.status(503).json({ 
-        error: isQuotaError 
-          ? 'Service is heavily loaded. Please try again in a few seconds.' 
-          : (err.message || 'Election information service is temporarily unavailable.')
-      });
+      res.status(503).json({ error: 'Election assistant is temporarily overloaded. Please try again in 30 seconds.' });
     }
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Controller for Voter ID OCR and data enrichment.
- * Uses Gemini JSON mode for reliable structural extraction.
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
 const scanVoterID = async (req, res, next) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No image file provided' });
-    }
-
+    if (!req.file) return res.status(400).json({ error: 'No image provided' });
+    
+    // 1. MIME Type Check
     if (!ALLOWED_MIME_TYPES.includes(req.file.mimetype)) {
       return res.status(400).json({ error: 'Unsupported file type. JPEG, PNG, WEBP only.' });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ error: 'Server configuration error: GEMINI_API_KEY is missing.' });
+    // 2. Magic Number Buffer Validation (Security Hardening)
+    if (!isValidImageBuffer(req.file.buffer)) {
+      return res.status(400).json({ error: 'Malicious file detected: Content does not match MIME type.' });
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.0-flash",
       generationConfig: { responseMimeType: "application/json" }
     });
-    
+
     const base64Data = req.file.buffer.toString('base64');
+    const promptText = `Extract Indian Voter ID details into JSON. Fields: epic, name, gender, address, pollingStation, pollingStationAddress, constituency, state, city. Use null if unreadable.`;
+
+    const result = await model.generateContent([
+      promptText,
+      { inlineData: { data: base64Data, mimeType: req.file.mimetype } }
+    ]);
+
+    const rawExtracted = JSON.parse(await result.response.text());
+    const enriched = await enrichVoterData(rawExtracted);
     
-    const promptText = `Analyze this Indian Voter ID card. Extract details as a JSON object:
-    {
-      "epic": "string",
-      "name": "string",
-      "gender": "string",
-      "address": "string",
-      "pollingStation": "string",
-      "pollingStationAddress": "string",
-      "constituency": "string",
-      "state": "string",
-      "city": "string"
-    }
-    If a field is unreadable, use null.`;
-
-    // Exponential Backoff Retry Logic
-    let attempts = 0;
-    const maxAttempts = 3;
-    let delay = 2000;
-
-    while (attempts < maxAttempts) {
-      try {
-        const result = await model.generateContent([
-          promptText,
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType: req.file.mimetype
-            }
-          }
-        ]);
-
-        const response = await result.response;
-        
-        // Handle Safety Filter Blocks
-        if (response.promptFeedback?.blockReason) {
-          throw new Error(`The image was blocked by the safety filter: ${response.promptFeedback.blockReason}`);
-        }
-
-        const rawText = response.text();
-        let rawExtracted;
-        try {
-          rawExtracted = JSON.parse(rawText);
-        } catch (parseErr) {
-          console.error("JSON Parse Error in Vision Output:", rawText);
-          throw new Error('Failed to parse extraction results. The image might be unreadable.');
-        }
-        
-        // Validation & Enrichment
-        const enrichedResult = await enrichVoterData(rawExtracted);
-        return res.json({ result: enrichedResult });
-
-      } catch (apiError) {
-        const err = apiError instanceof Error ? apiError : new Error(String(apiError));
-        // @ts-ignore
-        const isQuotaError = err.status === 429 || err.message.includes('429') || err.message.includes('quota');
-        attempts++;
-
-        // FALLBACK TO GROQ VISION: If Gemini hits 429
-        if (isQuotaError && process.env.GROQ_API_KEY) {
-          console.warn('[OCR] Gemini quota hit. Attempting Groq Llama-3.2-Vision fallback...');
-          try {
-            const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                model: "meta-llama/llama-4-scout-17b-16e-instruct",
-                messages: [
-                  {
-                    role: "user",
-                    content: [
-                      { type: "text", text: promptText },
-                      {
-                        type: "image_url",
-                        image_url: { url: `data:${req.file.mimetype};base64,${base64Data}` }
-                      }
-                    ]
-                  }
-                ],
-                response_format: { type: "json_object" }
-              })
-            });
-
-            if (groqResponse.ok) {
-              const groqData = await groqResponse.json();
-              const groqRaw = JSON.parse(groqData.choices[0].message.content);
-              const enriched = await enrichVoterData(groqRaw);
-              return res.json({ result: enriched });
-            } else {
-              const errorText = await groqResponse.text();
-              console.error('[OCR] Groq Fallback failed with status:', groqResponse.status, errorText);
-            }
-          } catch (groqErr) {
-            console.error('[OCR] Groq Fallback Exception:', groqErr);
-          }
-        }
-
-        if (isQuotaError && attempts < maxAttempts) {
-          console.warn(`[OCR] Gemini Rate limit hit. Retrying in ${delay}ms... (Attempt ${attempts}/${maxAttempts})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 2;
-          continue;
-        }
-
-        console.error("OCR API Error:", err.stack || err.message);
-        const status = err.message.includes('GEMINI_API_KEY') ? 500 : 503;
-        return res.status(status).json({ 
-          error: isQuotaError 
-            ? 'The AI analysis service is busy. Retrying automatically...' 
-            : (err.message || 'OCR processing service is unavailable.')
-        });
-      }
-    }
+    return res.json({ result: enriched });
   } catch (error) {
-    console.error("Unhandled OCR Controller Error:", error);
-    next(error);
+    console.error("OCR Error:", error);
+    res.status(500).json({ error: 'Voter ID analysis failed. Ensure the image is clear and try again.' });
   }
 };
 

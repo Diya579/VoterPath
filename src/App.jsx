@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { signInAnonymously } from 'firebase/auth';
 import Sidebar from './components/Sidebar';
 import LanguageSelector from './components/LanguageSelector';
 import { seedDatabase } from './utils/seeder';
@@ -47,7 +47,7 @@ function Home() {
 const RouteLoader = () => (
   <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
     <Loader2 className="w-16 h-16 animate-spin stroke-[3] text-primary" />
-    <p className="text-2xl font-black uppercase brutal-bg-white p-2 brutal-border">Loading Interface...</p>
+    <p className="text-2xl font-black uppercase bg-white p-2 brutal-border">Loading Interface...</p>
   </div>
 );
 
@@ -56,21 +56,19 @@ export default function App() {
   const seedingAttempted = useRef(false);
 
   useEffect(() => {
-    // 1. Best-effort anonymous authentication
-    // We try to sign in to satisfy strict token checks, but if it's restricted in the console,
-    // the backend fallback (Origin-based) will handle security.
+    /**
+     * AUTHENTICATION BOOTSTRAP
+     * Implements an automatic anonymous session to satisfy the backend's
+     * Strict Fail-Closed security architecture.
+     */
     const initAuth = async () => {
       try {
-        const user = auth.currentUser;
-        if (!user) {
-          await signInAnonymously(auth).catch(err => {
-            if (err.code !== 'auth/admin-restricted-operation') {
-              console.warn('[Auth] Optional Anonymous Sign-in skipped:', err.message);
-            }
-          });
+        if (!auth.currentUser) {
+          await signInAnonymously(auth);
+          console.log('[Auth] Secure session established anonymously.');
         }
       } catch (err) {
-        // Non-fatal: Informational platform remains open
+        console.error('[Auth] Security session initialization failed:', err);
       }
     };
     initAuth();
@@ -92,6 +90,7 @@ export default function App() {
     <Router>
       <div className="flex min-h-screen bg-background">
         <Sidebar />
+        {/* WCAG Landmark: Main Content */}
         <main id="main-content" className="flex-1 ml-72 p-12" role="main">
           <div className="max-w-6xl mx-auto">
             <Suspense fallback={<RouteLoader />}>

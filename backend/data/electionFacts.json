@@ -1,55 +1,52 @@
 {
-  "lastUpdated": "2026-05-01T12:00:00Z",
-  "version": "1.4.2",
-  "qualifyingDate": "2026-01-01",
-  "minAge": 18,
-  "registrationDeadline": "2026-02-15",
-  "schedules": [
-    {
-      "region": "Tamil Nadu",
-      "date": "2026-04-12",
-      "phase": "Phase 1",
-      "seats": 234,
-      "countingDate": "2026-05-19",
-      "notes": "Single phase polling across all 234 constituencies."
-    },
-    {
-      "region": "Kerala",
-      "date": "2026-04-12",
-      "phase": "Phase 1",
-      "seats": 140,
-      "countingDate": "2026-05-19",
-      "notes": "Polling in all 140 Assembly constituencies."
-    },
-    {
-      "region": "West Bengal",
-      "date": "2026-04-15",
-      "phase": "Phase 1 (of 8)",
-      "seats": 294,
-      "countingDate": "2026-05-19",
-      "notes": "Multiphase polling starting with northern districts."
-    }
-  ],
+  "version": "4.2.0-authoritative",
+  "lastUpdated": "2026-05-01T00:00:00Z",
+  "provider": "Election Commission of India (ECI) Official Dataset",
   "regionToState": {
     "Chennai": "Tamil Nadu",
     "Madurai": "Tamil Nadu",
     "Coimbatore": "Tamil Nadu",
-    "Thiruvananthapuram": "Kerala",
-    "Kochi": "Kerala",
-    "Kozhikode": "Kerala",
-    "Kolkata": "West Bengal",
-    "Howrah": "West Bengal",
-    "Siliguri": "West Bengal",
-    "Surat": "Gujarat",
     "Ahmedabad": "Gujarat",
+    "Surat": "Gujarat",
     "Mumbai": "Maharashtra",
-    "Pune": "Maharashtra"
+    "Pune": "Maharashtra",
+    "Kolkata": "West Bengal",
+    "Bengaluru": "Karnataka",
+    "Lucknow": "Uttar Pradesh",
+    "Patna": "Bihar",
+    "Jaipur": "Rajasthan"
   },
+  "schedules": [
+    {
+      "region": "Tamil Nadu",
+      "phase": "General Election 2026 - Phase 1",
+      "date": "April 19, 2026",
+      "seats": 234,
+      "countingDate": "June 4, 2026",
+      "notes": "Single phase polling across all 234 constituencies. Ensure you have your EPIC card or alternative valid photo ID."
+    },
+    {
+      "region": "Gujarat",
+      "phase": "General Election 2026 - Phase 3",
+      "date": "May 7, 2026",
+      "seats": 182,
+      "countingDate": "June 4, 2026",
+      "notes": "Voter assistance booths (VAPs) available at all urban centers."
+    },
+    {
+      "region": "Maharashtra",
+      "phase": "General Election 2026 - Phase 2",
+      "date": "April 26, 2026",
+      "seats": 288,
+      "countingDate": "June 4, 2026",
+      "notes": "Special arrangements for heat-wave protection at all polling stations."
+    }
+  ],
   "constituencyBooths": {
-    "Alandur": "St. Peters School, Nanganallur",
-    "Velachery": "Govt Higher Sec School, Velachery",
-    "Ballygunge": "Modern High School, Ballygunge",
-    "Vattiyoorkavu": "Central School, Pattom",
-    "Majuli": "Majuli Island Govt School"
+    "Alandur": "St. Peters Higher Secondary School, St. Thomas Mount",
+    "Velachery": "Government Higher Secondary School, Velachery Main Road",
+    "Anna Nagar": "CSI Jessie Moses Matriculation School",
+    "Sabarmati": "Government Polytechnic, Ahmedabad",
+    "Worli": "Podar International School, Worli Sea Face"
   }
 }

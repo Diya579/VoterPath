@@ -20,7 +20,7 @@ export default function LanguageSelector({ onSelect }) {
     { code: 'hi', name: 'Hindi', native: 'हिन्दी', color: 'bg-secondary text-white' },
     { code: 'bn', name: 'Bengali', native: 'বাংলা', color: 'bg-tertiary' },
     { code: 'te', name: 'Telugu', native: 'తెలుగు', color: 'bg-accent text-white' },
-    { code: 'mr', name: 'Marathi', native: 'मराठी', color: 'bg-primary' },
+    { code: 'mr', name: 'Marathi', native: 'मরাठी', color: 'bg-primary' },
     { code: 'ta', name: 'Tamil', native: 'தமிழ்', color: 'bg-secondary text-white' },
     { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી', color: 'bg-tertiary' },
     { code: 'ur', name: 'Urdu', native: 'اردو', color: 'bg-accent text-white' },
@@ -33,6 +33,7 @@ export default function LanguageSelector({ onSelect }) {
     { code: 'ks', name: 'Kashmiri', native: 'کٲشُر', color: 'bg-tertiary' }
   ];
 
+  /** @param {string} code */
   const handleSelect = (code) => {
     i18n.changeLanguage(code);
     localStorage.setItem('voterLanguage', code);
@@ -43,24 +44,24 @@ export default function LanguageSelector({ onSelect }) {
    * Focus Trap: Keeps keyboard focus within the modal.
    * Handles Tab, Shift+Tab, and Escape key events per WCAG 2.1 §2.1.2.
    */
-  const handleKeyDown = useCallback((e) => {
+  const handleKeyDown = useCallback(
+    /** @param {KeyboardEvent} e */
+    (e) => {
     if (!modalRef.current) return;
 
     const focusableEls = modalRef.current.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
-    const firstEl = focusableEls[0];
-    const lastEl = focusableEls[focusableEls.length - 1];
+    const firstEl = /** @type {HTMLElement} */ (focusableEls[0]);
+    const lastEl = /** @type {HTMLElement} */ (focusableEls[focusableEls.length - 1]);
 
     if (e.key === 'Tab') {
       if (e.shiftKey) {
-        // Shift+Tab: wrap from first to last
         if (document.activeElement === firstEl) {
           e.preventDefault();
           lastEl.focus();
         }
       } else {
-        // Tab: wrap from last to first
         if (document.activeElement === lastEl) {
           e.preventDefault();
           firstEl.focus();
@@ -73,7 +74,7 @@ export default function LanguageSelector({ onSelect }) {
   useEffect(() => {
     const modal = modalRef.current;
     if (modal) {
-      const firstBtn = modal.querySelector('button');
+      const firstBtn = /** @type {HTMLElement | null} */ (modal.querySelector('button'));
       if (firstBtn) firstBtn.focus();
     }
 
@@ -93,10 +94,10 @@ export default function LanguageSelector({ onSelect }) {
           id="lang-selector-title"
           className="text-4xl font-black mb-4 uppercase bg-primary inline-block p-4 brutal-border shadow-brutal-sm -rotate-2"
         >
-          🗳️ VoterPath India
+          Select Language / भाषा चुनें
         </h1>
         <p className="text-2xl font-bold mb-10 mt-6 uppercase">
-          {t('selectLanguage')}
+          Welcome to VoterPath India
         </p>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
@@ -105,6 +106,7 @@ export default function LanguageSelector({ onSelect }) {
               key={lang.code}
               onClick={() => handleSelect(lang.code)}
               className={`brutal-btn ${lang.color} py-4 px-2 flex flex-col items-center justify-center gap-1`}
+              aria-label={`Select ${lang.name} - ${lang.native}`}
             >
               <span className="text-xl font-black">{lang.native}</span>
               <span className="text-xs font-bold opacity-70 uppercase">{lang.name}</span>

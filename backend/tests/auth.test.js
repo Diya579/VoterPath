@@ -1,7 +1,7 @@
 /// <reference types="jest" />
 const request = require('supertest');
 const express = require('express');
-const verifyToken = require('../middleware/authMiddleware');
+const { verifyToken } = require('../middleware/authMiddleware');
 
 // Isolated express app — separate from main server to avoid side effects
 const app = express();
@@ -9,14 +9,17 @@ app.use(express.json());
 app.get('/test-auth', verifyToken, (req, res) => res.json({ success: true }));
 
 describe('Auth Middleware', () => {
-  it('should reject requests from authorized origins if no token is provided (Fail-Closed)', async () => {
-    const response = await request(app)
-      .get('/test-auth')
-      .set('Origin', 'http://localhost:5173');
+  beforeAll(() => {
+    process.env.ALLOW_TEST_TOKENS = 'true';
+    process.env.NODE_ENV = 'test';
+  });
+
+  it('should reject requests with missing token (Fail-Closed)', async () => {
+    const response = await request(app).get('/test-auth');
     expect(response.statusCode).toBe(401);
   });
 
-  it('should allow requests with a valid test-token in development', async () => {
+  it('should allow requests with a valid test-token when enabled', async () => {
     const response = await request(app)
       .get('/test-auth')
       .set('Authorization', 'Bearer test-token');
@@ -24,38 +27,24 @@ describe('Auth Middleware', () => {
     expect(response.body.success).toBe(true);
   });
 
-  it('should reject requests with a malformed Bearer token when Firebase Admin is initialized', async () => {
-    // This test is only meaningful when FIREBASE_SERVICE_ACCOUNT is set
-    // In CI without it, the middleware falls through — test validates the reject branch logic
-    const badTokenApp = express();
-    badTokenApp.use(express.json());
+  it('should reject requests when test-tokens are disabled', async () => {
+    process.env.ALLOW_TEST_TOKENS = 'false';
+    const response = await request(app)
+      .get('/test-auth')
+      .set('Authorization', 'Bearer test-token');
+    expect(response.statusCode).toBe(401);
+    process.env.ALLOW_TEST_TOKENS = 'true'; // Reset
+  });
 
-    // Create a minimal verifyToken that simulates the production path
-    /**
-     * @param {import('express').Request} req
-     * @param {import('express').Response} res
-     * @param {import('express').NextFunction} next
-     */
-    const mockVerifyToken = async (req, res, next) => {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized: No token provided.' });
-      }
-      // Simulate token verification failure
-      return res.status(401).json({ error: 'Unauthorized: Invalid or expired token.' });
-    };
-
-    badTokenApp.get('/secure', mockVerifyToken, (req, res) => res.json({ success: true }));
-
-    // Without any token → 401
-    const noTokenResponse = await request(badTokenApp).get('/secure');
-    expect(noTokenResponse.statusCode).toBe(401);
-    expect(noTokenResponse.body.error).toContain('Unauthorized');
-
-    // With invalid token → 401
-    const badTokenResponse = await request(badTokenApp)
-      .get('/secure')
-      .set('Authorization', 'Bearer invalid.token.here');
-    expect(badTokenResponse.statusCode).toBe(401);
+  it('should return 500 in production if auth provider is missing', async () => {
+    process.env.NODE_ENV = 'production';
+    const response = await request(app)
+      .get('/test-auth')
+      .set('Authorization', 'Bearer some-token');
+    
+    // In production without Firebase Admin, it must fail closed with 500
+    expect(response.statusCode).toBe(500);
+    expect(response.body.error).toMatch(/Internal Security Error/i);
+    process.env.NODE_ENV = 'test'; // Reset
   });
 });
