@@ -19,16 +19,19 @@ export const useAIAssistant = () => {
     setMessages(prev => [...prev, newMsg]);
 
     try {
-      // Best-effort token retrieval (fails gracefully if anonymous auth is restricted)
+      // STRICT FAIL-CLOSED AUTH: Every request MUST have a valid token.
       let token = null;
-      try {
-        const user = auth.currentUser;
-        if (user) {
-          token = await user.getIdToken();
-        }
-      } catch (authErr) {
-        console.warn('[Auth] Token retrieval failed, falling back to Origin-based security.');
+      const user = auth.currentUser;
+      if (user) {
+        token = await user.getIdToken();
+      } else {
+        // Force anonymous sign-in if not already authenticated
+        const { signInAnonymously } = await import('firebase/auth');
+        const cred = await signInAnonymously(auth);
+        token = await cred.user.getIdToken();
       }
+
+      if (!token) throw new Error('Authentication failed. Please refresh and try again.');
 
       // Map messages to the format expected by Gemini API (role: user/model, parts: [{ text }])
       const history = messages.map(m => ({
@@ -39,13 +42,12 @@ export const useAIAssistant = () => {
       // Calls our secure Node.js backend
       const fetchOptions = {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ prompt, history })
       };
-
-      if (token) {
-        fetchOptions.headers['Authorization'] = `Bearer ${token}`;
-      }
 
       const response = await fetch('/api/chat', fetchOptions);
 

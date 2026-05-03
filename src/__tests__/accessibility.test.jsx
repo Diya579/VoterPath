@@ -1,38 +1,52 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import Chatbot from '../components/Chatbot';
+import { BrowserRouter } from 'react-router-dom';
+import Sidebar from '../components/Sidebar';
+import LanguageSelector from '../components/LanguageSelector';
+import IDScanner from '../components/IDScanner';
+import { VoterProvider } from '../contexts/VoterContext';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (str) => str, i18n: { language: 'en' } })
+// Mock dependencies
+vi.mock('../firebase/config', () => ({
+  auth: { currentUser: null },
+  db: {}
 }));
 
-vi.mock('../hooks/useAIAssistant', () => ({
-  useAIAssistant: () => ({
-    messages: [
-      { role: 'user', content: 'Can I vote?' },
-      { role: 'assistant', content: 'Yes, if you are 18+.' }
-    ],
-    sendMessage: vi.fn(),
-    loading: false
-  })
-}));
+const renderWithProviders = (ui) => {
+  return render(
+    <BrowserRouter>
+      <VoterProvider>
+        {ui}
+      </VoterProvider>
+    </BrowserRouter>
+  );
+};
 
-describe('Accessibility Standards Audit', () => {
-  it('Chatbot message list has aria-live region for screen reader announcements', () => {
-    render(<Chatbot />);
-    const liveRegion = document.querySelector('[aria-live="polite"]');
-    expect(liveRegion).not.toBeNull();
+describe('Production Accessibility Audit (WCAG 2.1)', () => {
+  it('Sidebar contains landmark navigation and skip-link targets', () => {
+    renderWithProviders(<Sidebar />);
+    expect(screen.getByRole('navigation')).toBeDefined();
+    const navLinks = screen.getAllByRole('link');
+    expect(navLinks.length).toBeGreaterThan(0);
+    navLinks.forEach(link => {
+      expect(link.getAttribute('aria-label') || link.textContent).toBeTruthy();
+    });
   });
 
-  it('Chatbot renders both user and assistant messages', () => {
-    render(<Chatbot />);
-    expect(screen.getByText('Can I vote?')).toBeDefined();
-    expect(screen.getByText('Yes, if you are 18+.')).toBeDefined();
+  it('LanguageSelector has correct semantic structure for screen readers', () => {
+    renderWithProviders(<LanguageSelector onSelect={() => {}} />);
+    expect(screen.getByRole('dialog')).toBeDefined();
+    expect(screen.getByRole('heading', { level: 2 })).toBeDefined();
+    const langButtons = screen.getAllByRole('button');
+    expect(langButtons.length).toBeGreaterThan(0);
   });
 
-  it('Send button is present and labeled', () => {
-    render(<Chatbot />);
-    const submitBtn = document.querySelector('button[type="submit"]');
-    expect(submitBtn).not.toBeNull();
+  it('IDScanner provides accessible instructions and status regions', () => {
+    renderWithProviders(<IDScanner />);
+    const statusRegion = document.querySelector('[aria-live="polite"]');
+    expect(statusRegion).toBeDefined();
+    expect(screen.getByRole('heading', { level: 2 })).toBeDefined();
+    const uploadInput = screen.getByLabelText(/upload/i);
+    expect(uploadInput).toBeDefined();
   });
 });

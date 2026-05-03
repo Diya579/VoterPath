@@ -33,21 +33,27 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
  */
 function sanitizePrompt(input) {
   if (!input) return '';
-  // Pattern matching for system instruction overrides
+  // Pattern matching for system instruction overrides and semantic jailbreaks
   const blockedPatterns = [
-    /ignore previous instructions?/gi,
+    /ignore (all )?previous instructions?/gi,
     /you are now/gi,
     /\[system\]/gi,
     /### system/gi,
     /system_instruction/gi,
-    /<\|.*?\|>/g
+    /<\|.*?\|>/g,
+    /reset all settings/gi,
+    /switch to developer mode/gi,
+    /as a large language model/gi,
+    /forget your purpose/gi
   ];
   
   let sanitized = input;
-  blockedPatterns.forEach(p => { sanitized = sanitized.replace(p, '[neutralized]'); });
+  blockedPatterns.forEach(p => { sanitized = sanitized.replace(p, '[REDACTED_SECURITY_POLICY]'); });
   
+  // Strip HTML and control characters
   return sanitized
-    .replace(/<script.*?>.*?<\/script>/gi, '') 
+    .replace(/<script.*?>.*?<\/script>/gi, '')
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, "")
     .trim();
 }
 
@@ -61,6 +67,9 @@ async function enrichVoterData(rawData) {
   const election = detectedState ? await eciService.getScheduleForState(detectedState) : null;
   const booth = await eciService.getBoothForConstituency(extracted.constituency || extracted.pollingStation || '');
 
+  // Confidence Heuristic: High if exact EPIC match, Medium if fuzzy region match
+  const confidence = (extracted.epic && validateVoterIdFormat(extracted.epic)) ? 0.95 : 0.70;
+
   return {
     epic: extracted.epic || null,
     epicValid: validateVoterIdFormat(extracted.epic || ''),
@@ -73,7 +82,11 @@ async function enrichVoterData(rawData) {
     detectedRegion: detectedState || (extracted.city || extracted.state || null),
     nearestBooth: booth || extracted.pollingStation || null,
     election: election,
-    meta: await eciService.getFreshness()
+    meta: {
+      ...await eciService.getFreshness(),
+      extractionConfidence: confidence,
+      source: "ECI Authoritative Layer"
+    }
   };
 }
 
@@ -127,6 +140,7 @@ const chatWithGemini = async (req, res, next) => {
       if (isQuotaError && process.env.GROQ_API_KEY) {
         console.warn('[Chat] Gemini Quota Exceeded. Falling back to Groq Llama-3.3...');
         try {
+          const facts = await eciService.getFacts();
           const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -136,7 +150,12 @@ const chatWithGemini = async (req, res, next) => {
             body: JSON.stringify({
               model: "llama-3.3-70b-versatile",
               messages: [
-                { role: "system", content: "You are the VoterPath Expert. Grounded in ECI facts. Answer in the requested language/script." },
+                { 
+                  role: "system", 
+                  content: `You are the VoterPath Expert. Grounded in ECI facts. 
+                  AUTHORITATIVE CONTEXT: ${JSON.stringify(facts.schedules)}
+                  Answer strictly in the requested language/script.` 
+                },
                 ...history.map(h => ({ role: h.role === 'model' ? 'assistant' : 'user', content: h.parts[0].text })),
                 { role: "user", content: prompt }
               ],

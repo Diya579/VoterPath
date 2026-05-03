@@ -11,10 +11,8 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     firebaseInitialized = true;
   } catch (e) {
     const err = e instanceof Error ? e : new Error(String(e));
-    console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT:', err.message);
+    console.error('[Auth] Failed to initialize Firebase Admin:', err.message);
   }
-} else {
-  console.warn('[Auth] FIREBASE_SERVICE_ACCOUNT not set. Running in development bypass mode.');
 }
 
 /**
@@ -23,63 +21,47 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
 
 /**
  * Token verification middleware.
+ * STRICT FAIL-CLOSED POLICY: Every request MUST have a valid token.
+ * Origin checks are handled separately by CORS; they are not an auth bypass.
+ * 
  * @param {AuthenticatedRequest} req
  * @param {import('express').Response} res
  * @param {import('express').NextFunction} next
  */
 const verifyToken = async (req, res, next) => {
-  // Hybrid Security Policy:
-  // 1. If a Bearer token is provided, we MUST verify it via Firebase Admin (if initialized).
-  // 2. If NO token is provided, we allow the request ONLY if it comes from an authorized Production Origin.
-  // This ensures the platform remains "fail-closed" to outside abuse while staying frictionless for users.
-  
   const authHeader = req.headers.authorization;
   
-  // CASE 1: Token provided -> Validate strictly
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    if (!firebaseInitialized) {
-      console.warn('[Auth] Token received but Firebase Admin not initialized. Falling back to Origin check.');
-    } else {
-      const token = authHeader.split(' ')[1];
-      try {
-        const decodedToken = await admin.auth().verifyIdToken(token);
-        req.user = decodedToken;
-        return next();
-      } catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        console.error('[Auth] Token verification failed:', err.message);
-        return res.status(401).json({ error: 'Unauthorized: Invalid or expired token.' });
-      }
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.error('[Auth] Security Block: Missing or malformed Authorization header.');
+    return res.status(401).json({ error: 'Authentication required. Please sign in to continue.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  if (!firebaseInitialized) {
+    // In production, if Firebase Admin is not initialized, we CANNOT verify tokens.
+    // We fail-closed to prevent unauthorized access.
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[Auth] Critical: Firebase Admin not initialized in production. Failing closed.');
+      return res.status(500).json({ error: 'Internal Security Error: Authentication service unavailable.' });
+    }
+    
+    // In development, we allow a "test-token" if env is not set up
+    if (process.env.NODE_ENV !== 'production' && token === 'test-token') {
+      req.user = { uid: 'dev-user', anonymous: true };
+      return next();
     }
   }
 
-  // CASE 2: No token or Firebase uninitialized -> Check Production Origin Integrity
-  const origin = req.headers.origin || req.headers.referer;
-  const allowedList = process.env.ALLOWED_ORIGINS 
-    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()) 
-    : [
-        'http://localhost:5173',
-        'https://voterpath-776684989084.us-central1.run.app'
-      ];
-  
-  // Allow requests with no origin/referer (same-site or direct internal calls)
-  if (!origin) {
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    req.user = decodedToken;
     return next();
+  } catch (error) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error('[Auth] Token verification failed:', err.message);
+    return res.status(401).json({ error: 'Unauthorized: Invalid or expired token.' });
   }
-
-  const isAllowedOrigin = allowedList.some(o => origin && origin.startsWith(o));
-
-  if (isAllowedOrigin) {
-    return next();
-  }
-
-  console.error('[Auth] Security Block: Unauthorized origin or missing authentication token.');
-  console.error(`[Auth] Rejected Origin: ${origin}`);
-  console.error(`[Auth] Configured Allowed Origins: ${allowedList.join(', ')}`);
-  
-  return res.status(403).json({ 
-    error: 'Security Policy Violation: Access restricted to official VoterPath domains.' 
-  });
 };
 
 module.exports = verifyToken;

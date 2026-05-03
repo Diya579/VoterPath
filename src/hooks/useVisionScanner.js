@@ -42,16 +42,19 @@ export const useVisionScanner = () => {
     setResult(null);
 
     try {
-      // Best-effort token retrieval (fails gracefully if anonymous auth is restricted)
+      // STRICT FAIL-CLOSED AUTH: Every request MUST have a valid token.
       let token = null;
-      try {
-        const user = auth.currentUser;
-        if (user) {
-          token = await user.getIdToken();
-        }
-      } catch (authErr) {
-        console.warn('[Auth] Token retrieval failed, falling back to Origin-based security.');
+      const user = auth.currentUser;
+      if (user) {
+        token = await user.getIdToken();
+      } else {
+        // Force anonymous sign-in if not already authenticated
+        const { signInAnonymously } = await import('firebase/auth');
+        const cred = await signInAnonymously(auth);
+        token = await cred.user.getIdToken();
       }
+
+      if (!token) throw new Error('Authentication failed. Please refresh and try again.');
 
       const formData = new FormData();
       formData.append('image', file);
