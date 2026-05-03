@@ -1,4 +1,21 @@
 steps:
+# Step 1: Install frontend dependencies
+- name: 'gcr.io/cloud-builders/npm'
+  args: ['install']
+
+# Step 2: Build frontend
+- name: 'gcr.io/cloud-builders/npm'
+  args: ['run', 'build']
+  env:
+  - 'VITE_FIREBASE_API_KEY=${_VITE_FIREBASE_API_KEY}'
+  - 'VITE_FIREBASE_AUTH_DOMAIN=${_VITE_FIREBASE_AUTH_DOMAIN}'
+  - 'VITE_FIREBASE_PROJECT_ID=${_VITE_FIREBASE_PROJECT_ID}'
+  - 'VITE_FIREBASE_STORAGE_BUCKET=${_VITE_FIREBASE_STORAGE_BUCKET}'
+  - 'VITE_FIREBASE_MESSAGING_SENDER_ID=${_VITE_FIREBASE_MESSAGING_SENDER_ID}'
+  - 'VITE_FIREBASE_APP_ID=${_VITE_FIREBASE_APP_ID}'
+  - 'VITE_FIREBASE_MEASUREMENT_ID=${_VITE_FIREBASE_MEASUREMENT_ID}'
+
+# Step 3: Build and Push Docker Image
 - name: 'gcr.io/cloud-builders/docker'
   args: [
     'build',
@@ -12,5 +29,18 @@ steps:
     '--build-arg', 'VITE_FIREBASE_MEASUREMENT_ID=${_VITE_FIREBASE_MEASUREMENT_ID}',
     '.'
   ]
+
+# Step 4: Deploy to Cloud Run
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args: [
+    'run', 'deploy', 'voterpath',
+    '--image', 'gcr.io/$PROJECT_ID/voterpath',
+    '--region', 'us-central1',
+    '--platform', 'managed',
+    '--allow-unauthenticated',
+    '--env-vars-file', 'env_vars.yaml'
+  ]
+
 images:
 - 'gcr.io/$PROJECT_ID/voterpath'
