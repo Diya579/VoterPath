@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useVisionScanner } from '../hooks/useVisionScanner';
-import { Upload, Loader2, FileText, MapPin, Calendar, Info, User, ExternalLink, ShieldCheck, Fingerprint, Lock } from 'lucide-react';
+import { Upload, Loader2, FileText, MapPin, Calendar, User, ExternalLink, ShieldCheck, Fingerprint, Lock } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -12,6 +12,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 /**
  * Converts the first page of a PDF file to a JPEG image.
  * Used for processing e-EPIC digital voter ID cards.
+ * @param {File} file
+ * @returns {Promise<File>}
  */
 async function pdfToImage(file) {
   const arrayBuffer = await file.arrayBuffer();
@@ -22,9 +24,15 @@ async function pdfToImage(file) {
   const canvas = document.createElement('canvas');
   canvas.width = viewport.width;
   canvas.height = viewport.height;
-  await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(new File([blob], 'voter_id.jpg', { type: 'image/jpeg' })), 'image/jpeg', 0.95);
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Canvas context could not be initialized');
+  
+  await page.render({ canvasContext: context, viewport, canvas }).promise;
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) return reject(new Error('Canvas to Blob conversion failed'));
+      resolve(new File([blob], 'voter_id.jpg', { type: 'image/jpeg' }));
+    }, 'image/jpeg', 0.95);
   });
 }
 
@@ -34,37 +42,66 @@ async function pdfToImage(file) {
  */
 export default function IDScanner() {
   const { t, i18n } = useTranslation();
+  /** @type {{ scanImage: (file: File) => Promise<void>, loading: boolean, result: import('../hooks/useVisionScanner').VisionResult | null, error: string | null }} */
+  // @ts-ignore
   const { scanImage, loading, result, error } = useVisionScanner();
   const [dragActive, setDragActive] = useState(false);
   const [isPdf, setIsPdf] = useState(false);
+  /** @type {[string | null, import('react').Dispatch<import('react').SetStateAction<string | null>>]} */
+  // @ts-ignore
+  const [localError, setLocalError] = useState(null);
+  /** @type {import('react').MutableRefObject<HTMLInputElement | null>} */
+  // @ts-ignore
   const fileInputRef = useRef(null);
 
+  /**
+   * @param {File | undefined} file
+   */
   const processFile = useCallback(async (file) => {
     if (!file) return;
     
     const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      alert(t('errorInvalidFile', 'Please upload a valid image (JPG, PNG, WEBP) or PDF file.'));
+      setLocalError(t('errorInvalidFile', 'Please upload a valid image (JPG, PNG, WEBP) or PDF file.'));
       return;
     }
 
+    setLocalError(null);
+
     if (file.type === 'application/pdf') {
       setIsPdf(true);
-      const imageFile = await pdfToImage(file);
-      await scanImage(imageFile);
+      try {
+        const imageFile = await pdfToImage(file);
+        await scanImage(imageFile);
+      } catch (err) {
+        setLocalError('Failed to process PDF document.');
+      }
     } else {
       setIsPdf(false);
       await scanImage(file);
     }
   }, [scanImage, t]);
 
+  /**
+   * @param {React.DragEvent<HTMLDivElement> | React.ChangeEvent<HTMLInputElement>} e
+   */
   const handleFile = useCallback(async (e) => {
     e.preventDefault();
     setDragActive(false);
-    const file = e.dataTransfer ? e.dataTransfer.files[0] : e.target.files[0];
+    
+    let file;
+    if ('dataTransfer' in e) {
+      file = e.dataTransfer.files[0];
+    } else if (e.target.files) {
+      file = e.target.files[0];
+    }
+    
     await processFile(file);
   }, [processFile]);
 
+  /**
+   * @param {React.KeyboardEvent<HTMLDivElement>} e
+   */
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -72,8 +109,13 @@ export default function IDScanner() {
     }
   }, []);
 
+  /**
+   * @param {string} region
+   * @param {string} code
+   * @param {string} label
+   */
   const suggestLanguage = (region, code, label) => {
-    if (result?.detectedRegion === region && i18n.language !== code) {
+    if (result && result.detectedRegion === region && i18n.language !== code) {
       return (
         <div className="brutal-card p-6 bg-secondary text-white mt-6">
           <p className="font-bold text-lg mb-4 uppercase">{region} detected. Switch to {label} for a localized experience?</p>
@@ -129,10 +171,10 @@ export default function IDScanner() {
           </div>
         )}
 
-        {error && (
+        {(error || localError) && (
           <div className="p-6 brutal-card bg-secondary text-white mt-6" role="alert">
             <h3 className="text-xl font-black uppercase mb-1">⚠️ Analysis Failed</h3>
-            <p className="text-lg font-bold">{error}</p>
+            <p className="text-lg font-bold">{error || localError}</p>
           </div>
         )}
 
@@ -166,15 +208,15 @@ export default function IDScanner() {
                   {t('voterDetails')}
                 </h3>
                 <div className="flex items-center gap-2 bg-gray-100 p-2 brutal-border text-xs font-black uppercase">
-                  <Fingerprint className="w-4 h-4" /> Confidence: {Math.round(result.meta.extractionConfidence * 100)}%
+                  <Fingerprint className="w-4 h-4" /> Confidence: {Math.round((result.meta?.extractionConfidence || 0.9) * 100)}%
                 </div>
               </div>
 
               <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className={`p-4 brutal-border ${result.provenance?.epic === 'FORMAT_VERIFIED' ? 'bg-green-50 border-green-600' : 'bg-gray-50'}`}>
+                <div className={`p-4 brutal-border ${result.meta?.provenance?.epicStatus === 'FORMAT_VERIFIED' ? 'bg-green-50 border-green-600' : 'bg-gray-50'}`}>
                   <dt className="text-xs font-black uppercase text-gray-500 mb-1 flex items-center justify-between">
                     {t('epicExtracted')}
-                    {result.provenance?.epic === 'FORMAT_VERIFIED' && <Lock className="w-3 h-3 text-green-600" title="Format Validated" />}
+                    {result.meta?.provenance?.epicStatus === 'FORMAT_VERIFIED' && <span className="text-green-600 text-[10px] font-bold">FORMAT_VALIDATED</span>}
                   </dt>
                   <dd className="text-2xl font-black text-accent tracking-widest">{result.epic || 'NOT_FOUND'}</dd>
                 </div>
@@ -200,18 +242,18 @@ export default function IDScanner() {
                 Grounding Evidence
               </h3>
               <dl className="space-y-4">
-                <div className={`p-4 brutal-border shadow-brutal-sm ${result.provenance?.state === 'AUTHORITATIVE_MATCH' ? 'bg-white border-brutalBlack' : 'bg-gray-100 opacity-80'}`}>
+                <div className={`p-4 brutal-border shadow-brutal-sm ${result.meta?.provenance?.stateStatus === 'AUTHORITATIVE_MATCH' ? 'bg-white border-brutalBlack' : 'bg-gray-100 opacity-80'}`}>
                   <dt className="text-xs font-black uppercase text-gray-500 mb-1 flex justify-between">
                     State / Region
-                    {result.provenance?.state === 'AUTHORITATIVE_MATCH' && <span className="text-[10px] bg-brutalBlack text-white px-2 py-0.5">MATCHED_FACT_BASE</span>}
+                    {result.meta?.provenance?.stateStatus === 'AUTHORITATIVE_MATCH' && <span className="text-[10px] bg-brutalBlack text-white px-2 py-0.5">MATCHED_FACT_BASE</span>}
                   </dt>
                   <dd className="text-2xl font-black">{result.detectedRegion || 'Unknown'}</dd>
                 </div>
                 {result.nearestBooth && (
-                  <div className={`p-4 brutal-border shadow-brutal-sm ${result.provenance?.booth === 'AUTHORITATIVE_MATCH' ? 'bg-white border-brutalBlack' : 'bg-gray-100'}`}>
+                  <div className={`p-4 brutal-border shadow-brutal-sm ${result.meta?.provenance?.boothStatus === 'AUTHORITATIVE_MATCH' ? 'bg-white border-brutalBlack' : 'bg-gray-100'}`}>
                     <dt className="text-xs font-black uppercase text-gray-500 mb-1 flex justify-between">
                       Verified Polling Location
-                      {result.provenance?.booth === 'AUTHORITATIVE_MATCH' && <span className="text-[10px] bg-secondary text-white px-2 py-0.5">AUTHORITATIVE_RESOLVED</span>}
+                      {result.meta?.provenance?.boothStatus === 'AUTHORITATIVE_MATCH' && <span className="text-[10px] bg-secondary text-white px-2 py-0.5">AUTHORITATIVE_RESOLVED</span>}
                     </dt>
                     <dd className="text-xl font-black">🏫 {result.nearestBooth}</dd>
                   </div>

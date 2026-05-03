@@ -46,6 +46,7 @@ export default function Sidebar() {
               <Link
                 key={link.path}
                 to={link.path}
+                aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center p-4 transition-all brutal-border shadow-brutal-sm font-bold text-lg hover:translate-x-1 hover:translate-y-1 hover:shadow-brutal-hover ${
                   isActive ? `${link.color} text-black` : 'bg-white hover:bg-gray-100 text-black'
                 }`}

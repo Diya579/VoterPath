@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { auth } from '../firebase/config';
 
 /**
@@ -13,8 +13,12 @@ export const useAIAssistant = () => {
   // @ts-ignore
   const [messages, setMessages] = useState([]);
 
-  const sendMessage = async (prompt) => {
+  /**
+   * @param {string} prompt
+   */
+  const sendMessage = useCallback(async (prompt) => {
     setLoading(true);
+    /** @type {Message} */
     const newMsg = { role: 'user', content: prompt };
     setMessages(prev => [...prev, newMsg]);
 
@@ -57,17 +61,22 @@ export const useAIAssistant = () => {
       }
 
       const data = await response.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.text }]);
+      /** @type {Message} */
+      const assistantMsg = { role: 'assistant', content: data.text };
+      setMessages(prev => [...prev, assistantMsg]);
 
-    } catch (err) {
-      setMessages(prev => [...prev, {
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      /** @type {Message} */
+      const errorMsg = {
         role: 'assistant',
         content: err.message || 'Sorry, I am having trouble connecting to my servers right now. Please try again.'
-      }]);
+      };
+      setMessages(prev => [...prev, errorMsg]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [messages]);
 
   return { messages, sendMessage, loading };
 };

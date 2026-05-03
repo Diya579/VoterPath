@@ -4,7 +4,7 @@
  */
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { z } = require('zod');
+const z = require('zod');
 const { validateVoterIdFormat } = require('../shared/validation');
 const eciService = require('../services/eciService');
 
@@ -81,7 +81,7 @@ function sanitizeHistory(history) {
   return history
     .slice(-10)
     .filter(h => {
-      const text = (h.parts?.[0]?.text || '').toLowerCase();
+      const text = (/** @type {any} */ (h.parts?.[0])?.text || '').toLowerCase();
       // 1. Structural Check
       const hasControlChars = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/.test(text);
       // 2. Semantic Poisoning Check
@@ -104,7 +104,7 @@ async function resolveCivicContext(prompt) {
   const facts = await eciService.getFacts();
 
   // 1. ELIGIBILITY INTENT
-  if (query.includes('eligible') || query.includes('age') || query.includes('can i vote')) {
+  if (facts && (query.includes('eligible') || query.includes('age') || query.includes('can i vote'))) {
     return {
       intent: 'ELIGIBILITY',
       data: facts.eligibility,
@@ -115,19 +115,23 @@ async function resolveCivicContext(prompt) {
   // 2. SCHEDULE INTENT
   if (query.includes('when') || query.includes('schedule') || query.includes('date')) {
     const stateResult = await eciService.resolveState(prompt);
-    if (stateResult.status === 'exact') {
+    if (stateResult.status === 'exact' && stateResult.value) {
       const schedule = await eciService.getScheduleForState(stateResult.value);
+      if (schedule) {
+        return {
+          intent: 'SCHEDULE_EXACT',
+          data: schedule,
+          template: `Confirmed Schedule for ${stateResult.value}: Phase ${schedule.phase}, Polling Date: ${schedule.date}.`
+        };
+      }
+    }
+    if (facts) {
       return {
-        intent: 'SCHEDULE_EXACT',
-        data: schedule,
-        template: `Confirmed Schedule for ${stateResult.value}: Phase ${schedule.phase}, Polling Date: ${schedule.date}.`
+        intent: 'SCHEDULE_GENERAL',
+        data: facts.schedules,
+        template: "General Schedule: I have official data for Tamil Nadu, Gujarat, and Maharashtra. Please specify your state for exact dates."
       };
     }
-    return {
-      intent: 'SCHEDULE_GENERAL',
-      data: facts.schedules,
-      template: "General Schedule: I have official data for Tamil Nadu, Gujarat, and Maharashtra. Please specify your state for exact dates."
-    };
   }
 
   // 3. BOOTH INTENT
@@ -152,6 +156,7 @@ async function resolveCivicContext(prompt) {
 
 /**
  * RESPONSE COMPOSER: Provider-Independent Instruction Assembly
+ * @param {any} context
  */
 function composeGroundedInstruction(context) {
   return `
@@ -196,8 +201,8 @@ async function validateExtractionReliability(extracted, manifest) {
   }
 
   // 3. Grounding Level
-  const stateMatch = await eciService.resolveState(extracted.state);
-  const boothMatch = await eciService.getBoothForConstituency(extracted.constituency);
+  const stateMatch = await eciService.resolveState(extracted.state || '');
+  const boothMatch = await eciService.getBoothForConstituency(extracted.constituency || '');
 
   return {
     report: {
@@ -216,6 +221,7 @@ async function validateExtractionReliability(extracted, manifest) {
 
 /**
  * ENRICHMENT ENGINE
+ * @param {any} rawData
  */
 async function enrichVoterData(rawData) {
   const extracted = extractedVoterSchema.parse(rawData);
@@ -249,6 +255,9 @@ async function enrichVoterData(rawData) {
 
 /**
  * HANDLER: Chat with Grounded AI
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 const chatWithGemini = async (req, res, next) => {
   try {
@@ -340,6 +349,9 @@ const chatWithGemini = async (req, res, next) => {
 
 /**
  * HANDLER: Scan Voter ID
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 const scanVoterID = async (req, res, next) => {
   try {

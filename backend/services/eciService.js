@@ -20,6 +20,7 @@ class EciService {
     this.EXPECTED_KEY_FINGERPRINT = 'dcec81c53917b0bc98aac0600e658bf32740406bb601ab84c6717ccf169553d5';
     this.EXPECTED_ISSUER = 'ECI-REGISTRY-V1';
     
+    /** @type {Record<string, { fingerprint: string, expiresAt: string }>} */
     this.keyRegistry = {
       'ECI-REGISTRY-V1': {
         fingerprint: this.EXPECTED_KEY_FINGERPRINT,
@@ -27,7 +28,9 @@ class EciService {
       }
     };
     
+    /** @type {z.infer<ReturnType<EciService["_getSchema"]>> | null} */
     this.cache = null;
+    /** @type {{ issuer: string, verifiedAt: string, fingerprint: string } | null} */
     this.provenance = null;
 
     this.stateMap = new Map();
@@ -62,6 +65,9 @@ class EciService {
     });
   }
 
+  /**
+   * @param {string} input
+   */
   _normalize(input) {
     if (!input) return '';
     return input
@@ -71,6 +77,9 @@ class EciService {
       .replace(/\s+/g, ' ');
   }
 
+  /**
+   * @param {any} facts
+   */
   _initializeMaps(facts) {
     this.stateMap.clear();
     this.aliasMap.clear();
@@ -94,6 +103,10 @@ class EciService {
     }
   }
 
+  /**
+   * @param {Buffer | string} rawData
+   * @param {string} signature
+   */
   _verifyManifestTrust(rawData, signature) {
     try {
       const keyMetadata = this.keyRegistry[this.EXPECTED_ISSUER];
@@ -110,7 +123,8 @@ class EciService {
       
       return verify.verify(ECI_PUBLIC_KEY, signature, 'base64');
     } catch (error) {
-      console.error('[Security] Manifest Verification Failed:', error.message);
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error('[Security] Manifest Verification Failed:', err.message);
       return false;
     }
   }
@@ -147,6 +161,9 @@ class EciService {
     return this.cache;
   }
 
+  /**
+   * @param {string} input
+   */
   async resolveState(input) {
     if (!this.cache) await this.refreshFacts();
     const normalized = this._normalize(input);
@@ -154,12 +171,19 @@ class EciService {
     return value ? { status: 'exact', value } : { status: 'unverified', value: null };
   }
 
+  /**
+   * @param {string} state
+   */
   async getScheduleForState(state) {
-    if (!this.cache) await this.refreshFacts();
+    const facts = await this.getFacts();
+    if (!facts) return null;
     const normalized = this._normalize(state);
-    return this.cache.schedules.find(s => this._normalize(s.region) === normalized) || null;
+    return facts.schedules.find((/** @type {any} */ s) => this._normalize(s.region) === normalized) || null;
   }
 
+  /**
+   * @param {string} constituency
+   */
   async getBoothForConstituency(constituency) {
     if (!this.cache) await this.refreshFacts();
     const normalized = this._normalize(constituency);
@@ -167,6 +191,10 @@ class EciService {
     return value ? { status: 'exact', value } : { status: 'unverified', value: null };
   }
 
+  /**
+   * @param {string} constituency
+   * @param {string} state
+   */
   async validateEntityConsistency(constituency, state) {
     if (!this.cache) await this.refreshFacts();
     const mappedState = this.consistencyMap.get(this._normalize(constituency));
@@ -174,10 +202,10 @@ class EciService {
   }
 
   async getFreshness() {
-    if (!this.cache) await this.refreshFacts();
+    const facts = await this.getFacts();
     return {
-      version: this.cache.version,
-      lastUpdated: this.cache.lastUpdated,
+      version: facts ? facts.version : 'unknown',
+      lastUpdated: facts ? facts.lastUpdated : 'unknown',
       provenance: this.provenance
     };
   }
