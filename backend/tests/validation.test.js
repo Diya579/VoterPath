@@ -24,7 +24,9 @@ describe('Shared Voter ID Validation', () => {
 
   it('rejects invalid formats', () => {
     expect(validateVoterIdFormat('')).toBe(false);
+    // @ts-ignore
     expect(validateVoterIdFormat(null)).toBe(false);
+    // @ts-ignore
     expect(validateVoterIdFormat(undefined)).toBe(false);
     expect(validateVoterIdFormat('12345')).toBe(false);
     expect(validateVoterIdFormat('AB1234567')).toBe(false);   // only 2 letters

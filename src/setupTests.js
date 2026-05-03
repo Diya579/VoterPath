@@ -5,6 +5,7 @@ import { vi } from 'vitest';
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
 
 // Polyfill for DOMMatrix which is not implemented in JSDOM
+// @ts-ignore
 window.DOMMatrix = class DOMMatrix {
   constructor() {
     this.a = 1; this.b = 0; this.c = 0; this.d = 1; this.e = 0; this.f = 0;

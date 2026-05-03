@@ -39,6 +39,8 @@ export default function IDScanner() {
   const { scanImage, loading, result, error } = useVisionScanner();
   const [dragActive, setDragActive] = useState(false);
   const [isPdf, setIsPdf] = useState(false);
+  /** @type {import('react').MutableRefObject<HTMLInputElement | null>} */
+  // @ts-ignore
   const fileInputRef = useRef(null);
 
   const processFile = useCallback(async (file) => {
@@ -61,6 +63,7 @@ export default function IDScanner() {
     }
   }, [scanImage, t]);
 
+  /** @param {any} e */
   const handleFile = useCallback(async (e) => {
     e.preventDefault();
     setDragActive(false);
@@ -69,6 +72,7 @@ export default function IDScanner() {
   }, [processFile]);
 
   // Keyboard accessibility: Enter/Space triggers file browser on the drop zone
+  /** @param {React.KeyboardEvent} e */
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();

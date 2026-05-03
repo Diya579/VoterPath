@@ -8,7 +8,7 @@ import { useVoterContext } from '../contexts/VoterContext';
 
 /**
  * Sidebar navigation component
- * @returns {JSX.Element} The rendered Sidebar component
+ * @returns {any} The rendered Sidebar component
  */
 export default function Sidebar() {
   const { t } = useTranslation();

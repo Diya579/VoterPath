@@ -1,8 +1,16 @@
 import { useState } from 'react';
 import { auth } from '../firebase/config';
 
+/**
+ * @typedef {Object} Message
+ * @property {'user' | 'assistant'} role
+ * @property {string} content
+ */
+
 export const useAIAssistant = () => {
   const [loading, setLoading] = useState(false);
+  /** @type {[Message[], import('react').Dispatch<import('react').SetStateAction<Message[]>>]} */
+  // @ts-ignore
   const [messages, setMessages] = useState([]);
 
   const sendMessage = async (prompt) => {

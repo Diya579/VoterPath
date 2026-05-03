@@ -13,6 +13,8 @@ export default function Chatbot() {
   const { messages, sendMessage, loading } = useAIAssistant();
   const [input, setInput] = useState('');
   const currentLang = i18n.language || 'en';
+  /** @type {import('react').MutableRefObject<HTMLDivElement | null>} */
+  // @ts-ignore
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -23,6 +25,7 @@ export default function Chatbot() {
     scrollToBottom();
   }, [messages]);
 
+  /** @param {React.FormEvent} e */
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;

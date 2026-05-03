@@ -4,6 +4,7 @@
  */
 
 /** Maps i18n language codes to full English language names used in AI prompts. */
+/** @type {Record<string, string>} */
 export const langNames = {
   en: 'English',
   hi: 'Hindi',

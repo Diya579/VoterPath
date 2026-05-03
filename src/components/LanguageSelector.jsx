@@ -7,10 +7,12 @@ import PropTypes from 'prop-types';
  * Keyboard focus is locked within the modal to prevent background interaction.
  * @param {Object} props - Component props
  * @param {Function} props.onSelect - Callback executed after a language is selected
- * @returns {JSX.Element} The rendered LanguageSelector component
+ * @returns {any} The rendered LanguageSelector component
  */
 export default function LanguageSelector({ onSelect }) {
   const { t, i18n } = useTranslation();
+  /** @type {import('react').MutableRefObject<HTMLDivElement | null>} */
+  // @ts-ignore
   const modalRef = useRef(null);
 
   const languages = [

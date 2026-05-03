@@ -25,7 +25,8 @@ class EciService {
       this.lastRefreshed = new Date();
       return this.cache;
     } catch (error) {
-      console.error('[ECI Service] Failed to refresh facts:', error.message);
+      const err = /** @type {Error} */ (error);
+      console.error('[ECI Service] Failed to refresh facts:', err.message);
       throw new Error('Authoritative fact source unavailable.');
     }
   }
@@ -40,6 +41,7 @@ class EciService {
 
   /**
    * Resolves the state for a given city/region using the authoritative mapping.
+   * @param {string} region
    */
   async resolveState(region) {
     if (!region) return null;
@@ -54,15 +56,17 @@ class EciService {
 
   /**
    * Returns the election schedule for a specific state.
+   * @param {string} state
    */
   async getScheduleForState(state) {
     if (!state) return null;
     const facts = await this.getFacts();
-    return facts.schedules.find(s => s.region === state) || null;
+    return facts.schedules.find(/** @param {any} s */ s => s.region === state) || null;
   }
 
   /**
    * Returns a deterministic polling booth for a constituency.
+   * @param {string} constituency
    */
   async getBoothForConstituency(constituency) {
     if (!constituency) return null;

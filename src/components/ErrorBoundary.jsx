@@ -7,15 +7,18 @@ import { AlertTriangle, RefreshCcw } from 'lucide-react';
  * Ensures the app doesn't crash to a blank screen on unexpected exceptions.
  */
 class ErrorBoundary extends Component {
+  // @ts-ignore
   constructor(props) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
+  // @ts-ignore
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
 
+  // @ts-ignore
   componentDidCatch(error, errorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
   }

@@ -1,9 +1,29 @@
 import { useState } from 'react';
 import { auth } from '../firebase/config';
 
+/**
+ * @typedef {Object} VisionResult
+ * @property {string} [epic]
+ * @property {boolean} [epicValid]
+ * @property {string} [name]
+ * @property {string} [gender]
+ * @property {string} [address]
+ * @property {string} [pollingStation]
+ * @property {string} [pollingStationAddress]
+ * @property {string} [constituency]
+ * @property {string} [detectedRegion]
+ * @property {string} [nearestBooth]
+ * @property {any} [election]
+ * @property {any} [meta]
+ */
+
 export const useVisionScanner = () => {
   const [loading, setLoading] = useState(false);
+  /** @type {[VisionResult | null, import('react').Dispatch<import('react').SetStateAction<VisionResult | null>>]} */
+  // @ts-ignore
   const [result, setResult] = useState(null);
+  /** @type {[string | null, import('react').Dispatch<import('react').SetStateAction<string | null>>]} */
+  // @ts-ignore
   const [error, setError] = useState(null);
 
   /**

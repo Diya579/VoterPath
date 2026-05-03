@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
+// @ts-ignore
 const CandidateRow = React.memo(({ candidate, votedFor, onVote }) => (
   <div className="flex items-center justify-between bg-gray-100 p-6 brutal-border shadow-brutal-sm">
     <div className="flex-1">
@@ -44,6 +45,7 @@ export default function EVMSimulator() {
     setVotedFor(id);
     
     if (!audioRef.current) {
+      // @ts-ignore
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();

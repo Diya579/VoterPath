@@ -218,9 +218,9 @@ const scanVoterID = async (req, res, next) => {
         // Validation & Enrichment
         const extracted = extractedVoterSchema.parse(rawExtracted);
         
-        const detectedState = await eciService.resolveState(extracted.state || extracted.city || extracted.address);
+        const detectedState = await eciService.resolveState(extracted.state || extracted.city || extracted.address || '');
         const election = detectedState ? await eciService.getScheduleForState(detectedState) : null;
-        const booth = await eciService.getBoothForConstituency(extracted.constituency || extracted.pollingStation);
+        const booth = await eciService.getBoothForConstituency(extracted.constituency || extracted.pollingStation || '');
 
         const enrichedResult = {
           epic: extracted.epic || null,

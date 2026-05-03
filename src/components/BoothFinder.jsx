@@ -10,9 +10,9 @@ import { langNames } from '../utils/constants';
 
 /**
  * Translates polling booth names and addresses using the backend AI service.
- * @param {Array} booths - Array of booth objects to translate.
+ * @param {Array<any>} booths - Array of booth objects to translate.
  * @param {string} targetLangCode - The language code (e.g., 'gu', 'hi').
- * @returns {Promise<Array>} - Translated booth objects.
+ * @returns {Promise<Array<any>>} - Translated booth objects.
  */
 async function translateBooths(booths, targetLangCode) {
   if (targetLangCode === 'en') return booths;
@@ -74,9 +74,10 @@ IMPORTANT: Use only native ${targetLang} script. Do NOT romanize. Return only JS
 /**
  * Memoized component for rendering an individual booth card.
  * @param {Object} props
- * @param {PollingBooth} props.booth - The booth data to render
- * @param {function(string): string} props.getBadgeColor - Returns tailwind color classes for booth type
+ * @param {PollingBooth} props.booth
+ * @param {function(string): string} props.getBadgeColor
  */
+// @ts-ignore
 const BoothCard = memo(({ booth, getBadgeColor }) => (
   <div 
     role="listitem"
@@ -109,6 +110,7 @@ BoothCard.displayName = 'BoothCard';
  * @param {function(string): string} props.getBadgeColor - Returns tailwind color classes for booth type
  * @param {function} props.t - i18n translation function
  */
+// @ts-ignore
 const BoothListPanel = memo(({ booths, getBadgeColor, t }) => (
   <div className="grid gap-6" role="list" aria-label="Polling booth list">
     {booths.length === 0 ? (
@@ -133,6 +135,8 @@ BoothListPanel.displayName = 'BoothListPanel';
 export default function BoothFinder() {
   const { t, i18n } = useTranslation();
   const [constituency, setConstituency] = useState('Ahmedabad West');
+  /** @type {[PollingBooth[], import('react').Dispatch<import('react').SetStateAction<PollingBooth[]>>]} */
+  // @ts-ignore
   const [booths, setBooths] = useState([]);
   const [loading, setLoading] = useState(false);
   const [translating, setTranslating] = useState(false);

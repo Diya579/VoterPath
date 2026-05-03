@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics, isSupported } from 'firebase/analytics';
@@ -24,6 +25,7 @@ export const storage = getStorage(app);
  * with IndexedDB support (not available in SSR, Node.js, or some test environments).
  * isSupported() prevents crashes in non-browser contexts.
  */
+/** @type {import('firebase/analytics').Analytics | null} */
 export let analytics = null;
 isSupported().then((supported) => {
   if (supported) {

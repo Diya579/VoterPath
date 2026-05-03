@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 const request = require('supertest');
 const express = require('express');
 const verifyToken = require('../middleware/authMiddleware');
@@ -23,6 +24,11 @@ describe('Auth Middleware', () => {
     badTokenApp.use(express.json());
 
     // Create a minimal verifyToken that simulates the production path
+    /**
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     * @param {import('express').NextFunction} next
+     */
     const mockVerifyToken = async (req, res, next) => {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {

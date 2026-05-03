@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 // This mimics the logic in resolveState from the backend to ensure consistency
+/** @type {Record<string, string>} */
 const regionToState = {
   "Tamil Nadu": "Tamil Nadu",
   "Chennai": "Tamil Nadu",
@@ -7,6 +8,7 @@ const regionToState = {
   "Kochi": "Kerala"
 };
 
+/** @param {string} city */
 function resolveState(city) {
   return regionToState[city] || null;
 }

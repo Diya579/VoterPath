@@ -3,7 +3,19 @@ import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { fallbackSchedules } from './fallbackData';
 
+/**
+ * @typedef {Object} Schedule
+ * @property {string} id
+ * @property {string} region
+ * @property {string} date
+ * @property {string} type
+ * @property {string} [electors]
+ * @property {string} [description]
+ */
+
 export function useTimelineData() {
+  /** @type {[Schedule[], import('react').Dispatch<import('react').SetStateAction<Schedule[]>>]} */
+  // @ts-ignore
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,12 +41,14 @@ export function useTimelineData() {
         }
 
         // Sort by date chronologically
-        const sorted = fetchedData.sort((a, b) => new Date(a.date) - new Date(b.date));
+        // @ts-ignore
+        const sorted = fetchedData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         setSchedules(sorted);
         localStorage.setItem('schedules', JSON.stringify(sorted));
       } catch (err) {
         console.warn('Firestore fetch failed, using fallback schedules');
-        const sorted = [...fallbackSchedules].sort((a, b) => new Date(a.date) - new Date(b.date));
+        // @ts-ignore
+        const sorted = [...fallbackSchedules].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         setSchedules(sorted);
         localStorage.setItem('schedules', JSON.stringify(sorted));
       } finally {
