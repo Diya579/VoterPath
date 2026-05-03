@@ -19,7 +19,7 @@ vi.mock('react-i18next', () => ({
 describe('LanguageSelector', () => {
   it('renders language options', () => {
     render(<LanguageSelector />);
-    expect(screen.getByText('selectLanguage')).toBeDefined();
+    expect(screen.getByText(/Select Language \/ भाषा चुनें/i)).toBeDefined();
   });
 
   it('triggers changeLanguage on selection', async () => {

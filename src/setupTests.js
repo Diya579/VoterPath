@@ -15,6 +15,39 @@ window.DOMMatrix = class DOMMatrix {
   multiply() { return new DOMMatrix(); }
 };
 
+// GLOBAL FIREBASE MOCKS (Prevents Fail-Closed Auth from breaking UI tests)
+vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn(() => ({
+    currentUser: { uid: 'test-user', email: 'test@voterpath.org' }
+  })),
+  signInAnonymously: vi.fn(() => Promise.resolve({ user: { uid: 'test-user' } })),
+  onAuthStateChanged: vi.fn((auth, cb) => {
+    cb({ uid: 'test-user' });
+    return () => {};
+  })
+}));
+
+vi.mock('firebase/app', () => ({
+  initializeApp: vi.fn(() => ({})),
+}));
+
+vi.mock('firebase/firestore', () => ({
+  getFirestore: vi.fn(() => ({})),
+  collection: vi.fn(),
+  doc: vi.fn(),
+  getDocs: vi.fn(() => Promise.resolve({ docs: [] })),
+  setDoc: vi.fn(() => Promise.resolve()),
+  query: vi.fn(),
+  where: vi.fn()
+}));
+
+// Mock the project config to return pre-mocked instances
+vi.mock('./firebase/config', () => ({
+  auth: { currentUser: { uid: 'test-user' } },
+  db: {},
+  storage: {}
+}));
+
 // Mock Firebase Config for CI
 vi.stubEnv('VITE_FIREBASE_API_KEY', 'test-api-key');
 vi.stubEnv('VITE_FIREBASE_PROJECT_ID', 'test-project-id');
